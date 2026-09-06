@@ -26,12 +26,19 @@ ssh -T git@github.com
 ```powershell
 npm ci
 npm run test:paths
+npm run test:literature
 npm run build:github
 ```
 
 静态网站生成在 `out` 文件夹。发布工作流会自动识别账号和仓库路径；本地默认使用上述目标。若改名，通过 `GITHUB_REPOSITORY=账号/仓库` 指定，或设置 `NEXT_PUBLIC_BASE_PATH` 和 `NEXT_PUBLIC_SITE_ORIGIN`。
 
 GitHub 构建使用已安装的 Next 静态导出，无须 Cloudflare Worker、ChatGPT 登录、数据库或付费服务器。构建过程会检查页面、资源路径和三合一入口。原始项目中的 `npm run build` 仍用于旧版托管；GitHub 发布必须使用 `npm run build:github`。
+
+## 加载速度
+
+- 入口首屏显示后，空闲时提前加载学习台；鼠标悬停或键盘聚焦入口也会准备页面。省流模式、离线和 2G 网络跳过这项后台加载。
+- 文献按报告分别加载并缓存。现有全部文献文件为 1,165,523 字节；拆分后单篇文件中位数为 4,914 字节，第一次打开详情无需读取整份文献库。这是未压缩数据体积对比，不代表页面耗时的同比改善。
+- 构建会核对每份文献文件与原始资料一致；测试覆盖 224 场口头报告的结果、重复请求缓存和失败重试。
 
 ## 三合一入口与原有数据
 

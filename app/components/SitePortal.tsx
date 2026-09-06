@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrandLockup } from './BrandLockup';
 import { PORTAL_ENTER_EVENT, safeReturnPath } from '../lib/entryNavigation';
 
@@ -13,6 +13,8 @@ const sites = [
 ] as const;
 
 export default function SitePortal() {
+  const router = useRouter();
+  const warmed = useRef(new Set<string>());
   const searchParams = useSearchParams();
   const requestedPath = searchParams.get('next');
   const [destination, setDestination] = useState('/learning');
@@ -20,6 +22,22 @@ export default function SitePortal() {
   useEffect(() => {
     queueMicrotask(() => { setDestination(safeReturnPath(requestedPath)); setResuming(Boolean(requestedPath)); });
   }, [requestedPath]);
+  const warmup = useCallback(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (!navigator.onLine || document.visibilityState !== 'visible' || connection?.saveData ||
+      /^(slow-)?2g$/.test(connection?.effectiveType || '') || warmed.current.has(destination)) return;
+    warmed.current.add(destination);
+    router.prefetch(destination);
+  }, [destination, router]);
+  useEffect(() => {
+    // Let the portal paint first; warm the learning route without delaying the first screen.
+    if ('requestIdleCallback' in window) {
+      const request = window.requestIdleCallback(warmup, { timeout: 1500 });
+      return () => window.cancelIdleCallback(request);
+    }
+    const timer = setTimeout(warmup, 1000);
+    return () => clearTimeout(timer);
+  }, [warmup]);
   const enter = () => window.dispatchEvent(new Event(PORTAL_ENTER_EVENT));
   return <main className="unifiedPortal" id="main-content">
     <header className="portalBrandBar"><Link href="/" aria-label="汇度三合一首页"><BrandLockup /></Link><span>肿瘤学互动学习 · 2026</span></header>
@@ -35,7 +53,7 @@ export default function SitePortal() {
         <div className="portalCardNumber" aria-hidden="true">{site.id}<span>↗</span></div>
         <h2>{site.title}</h2><p>{site.description}</p>
         <ul>{site.features.map(feature => <li key={feature}>{feature}</li>)}</ul>
-        {site.kind === 'learning' ? <Link className="portalEnter" href={destination} onClick={enter} prefetch={false}>{resuming ? '继续会议学习' : '进入会议学习台'}<span aria-hidden="true">→</span></Link> : <div className="portalPending">入口准备中<span aria-hidden="true">—</span></div>}
+        {site.kind === 'learning' ? <Link className="portalEnter" href={destination} onClick={enter} onPointerEnter={warmup} onFocus={warmup} prefetch={false}>{resuming ? '继续会议学习' : '进入会议学习台'}<span aria-hidden="true">→</span></Link> : <div className="portalPending">入口准备中<span aria-hidden="true">—</span></div>}
       </article>)}
     </section>
     <footer className="unifiedPortalFooter"><span>汇聚真知，传播有度</span><p>当前开放 1 / 3 · 笔记和日程保存在当前浏览器</p></footer>

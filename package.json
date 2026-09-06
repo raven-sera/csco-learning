@@ -8,6 +8,7 @@
   "scripts": {
     "build:github": "node scripts/build-github-pages.mjs",
     "test:paths": "node scripts/test-entry-navigation.mjs",
+    "test:literature": "node scripts/test-literature.mjs",
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",

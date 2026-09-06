@@ -26,6 +26,7 @@ jobs:
         uses: actions/configure-pages@v5
       - run: npm ci
       - run: npm run test:paths
+      - run: npm run test:literature
       - name: Export and verify website
         run: npm run build:github
         env:

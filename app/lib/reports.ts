@@ -99,6 +99,23 @@ function mergeReportPapers(id:number,title:string,papers:Paper[]) {
 }
 
 let literaturePromise:Promise<Map<number,LiteratureMatch>>|null=null;
+const reportLiterature = new Map<number, Promise<LiteratureMatch>>();
+
+function loadOneLiterature(id: number) {
+  let request = reportLiterature.get(id);
+  if (!request) {
+    request = fetch(publicPath(`/data/literature/${id}.json`), { cache: 'force-cache' })
+      .then(async response => {
+        if (!response.ok) throw new Error(`Literature request failed: ${response.status}`);
+        const payload = await response.json() as LiteratureMatch;
+        if (payload.id !== id || !Array.isArray(payload.papers)) throw new Error('Invalid literature record');
+        return payload;
+      })
+      .catch(error => { reportLiterature.delete(id); throw error; });
+    reportLiterature.set(id, request);
+  }
+  return request;
+}
 
 function loadLiterature() {
   if (!literaturePromise) {
@@ -119,6 +136,10 @@ function loadLiterature() {
 export async function loadReportPapers(report:Report) {
   if (report.kind === '汇报分享') return report.papers;
   try {
+    if (process.env.NEXT_PUBLIC_LITERATURE_CHUNKS === 'true') {
+      const literature = await loadOneLiterature(report.id);
+      return mergeReportPapers(report.id, report.sourceTitle, literature.papers);
+    }
     const literature=await loadLiterature();
     return mergeReportPapers(report.id,report.sourceTitle,literature.get(report.id)?.papers??[]);
   } catch (error) {
