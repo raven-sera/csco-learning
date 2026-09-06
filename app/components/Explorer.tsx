@@ -6,6 +6,7 @@ import { useDialog } from '../lib/useDialog';
 import { useLocalRecord } from '../lib/useLocalRecord';
 import { downloadCalendar, nextScheduledReport, reportInterval, scheduleConflicts } from '../lib/scheduleTools';
 import CalendarSchedule from './CalendarSchedule';
+const VenueNavigator = lazy(() => import('./VenueNavigator'));
 const CheckInCard = lazy(() => import('./CheckInCard'));
 const CheckInAtlas = lazy(() => import('./CheckInAtlas'));
 import type { ExportMode } from './ExportCenter';
@@ -14,7 +15,7 @@ import { BrandLockup } from './BrandLockup';
 const ReportNotes = lazy(() => import('./ReportNotes'));
 import ShareMoment, { SHARE_MOMENT_OPEN_EVENT, type ShareMomentContext } from './ShareMomentHost';
 import {
-  directions, fields, getSources, loadReportPapers, reportKindCounts, reports, searchScore,
+  directions, fields, reportKindCounts, reports, searchScore,
   sortReportsByDateTime, type Report,
 } from '../lib/reports';
 import { CHECK_IN_PHRASES, createCheckInRecord, isCheckInRecord, type CheckInRecord } from '../lib/checkIn';
@@ -181,21 +182,7 @@ const ReportCard = memo(function ReportCard({
 });
 
 
-function useReportWithLiterature(report:Report) {
-  const [detailedReport,setDetailedReport]=useState(report);
-  useEffect(()=>{
-    let cancelled=false;
-    loadReportPapers(report).then((papers)=>{
-      if (!cancelled && papers!==report.papers) setDetailedReport({...report,papers});
-    });
-    return()=>{cancelled=true;};
-  },[report]);
-  return detailedReport;
-}
-
-function DetailView({ report, scheduledReports, onClose, onOpen, favorite, onToggleFavorite, scheduled, onToggleSchedule, onShare }:{report:Report;scheduledReports:Report[];onClose:()=>void;onOpen:(r:Report)=>void;favorite:boolean;onToggleFavorite:(report:Report)=>void;scheduled:boolean;onToggleSchedule:(report:Report)=>void;onShare:(report:Report)=>void}) {
-  const detailedReport=useReportWithLiterature(report);
-  const sources=getSources(detailedReport);
+function DetailView({ report, scheduledReports, onClose, onOpen, onLocate, favorite, onToggleFavorite, scheduled, onToggleSchedule, onShare }:{report:Report;scheduledReports:Report[];onClose:()=>void;onOpen:(r:Report)=>void;onLocate:(report:Report)=>void;favorite:boolean;onToggleFavorite:(report:Report)=>void;scheduled:boolean;onToggleSchedule:(report:Report)=>void;onShare:(report:Report)=>void}) {
   const closeRef=useRef<HTMLButtonElement>(null);
   useDialog('.detailOverlay', onClose);
   return (
@@ -204,7 +191,7 @@ function DetailView({ report, scheduledReports, onClose, onOpen, favorite, onTog
       <section className="detailHero">
         <div className="detailTags"><span className="contentTypeTag" data-kind={report.kind}>{report.kind}</span><span>{report.kind === '汇报分享' ? report.scheduleCategory : report.field}</span><span className="programTag">{report.program}</span>{report.session && <span className="sessionTag">{report.session}</span>}{report.kind === '口头报告' && report.directions.slice(0,2).map((d)=><span key={d}>{d}</span>)}</div>
         <h1 id="detail-title">{report.sourceTitle}</h1>
-        <div className="detailMeta"><div><small>{report.kind === '汇报分享' ? '汇报人' : '报告人'}</small><strong>{report.speaker}</strong><span>{report.institution}</span></div><div><small>时间</small><strong>{report.dateTime}</strong><span>日程类别：{report.scheduleCategory}</span></div><div><small>地点</small><strong>{report.location}</strong><span>依据CSCO官方日程</span></div></div>
+        <div className="detailMeta"><div><small>{report.kind === '汇报分享' ? '汇报人' : '报告人'}</small><strong>{report.speaker}</strong><span>{report.institution}</span></div><div><small>时间</small><strong>{report.dateTime}</strong><span>日程类别：{report.scheduleCategory}</span></div><div><small>地点</small><strong>{report.location}</strong><span>依据CSCO官方日程</span><button className="venueLocateButton" onClick={() => onLocate(report)} aria-haspopup="dialog">查看会场</button></div></div>
       </section>
       <nav className="mobileDetailActions" aria-label="当前报告快捷操作">
         <span className="mobileDetailActionLabel">本场快捷操作</span>
@@ -213,7 +200,6 @@ function DetailView({ report, scheduledReports, onClose, onOpen, favorite, onTog
       </nav>
       <div className="detailColumns"><main className="backgroundPanel">
         <Suspense fallback={<p className="moduleLoading" role="status">正在载入笔记编辑器…</p>}><ReportNotes report={report} /></Suspense>
-        <section className="sourceSection"><span className="sectionKicker">可追溯资料</span><h3>引用与延伸阅读</h3><div className="sourceList">{sources.map((source,index)=><a className={source.priority?'prioritySource':''} key={`${source.url}-${index}`} href={source.url} target="_blank" rel="noreferrer"><b>[{index+1}]</b><div><span>{source.type}{source.priority&&<em>优先核对 · 同作者同单位</em>}</span><strong>{source.title}</strong>{source.note&&<small>{source.note}</small>}</div><i>↗</i></a>)}</div></section>
       </main><aside className="relatedPanel"><div className="stickyRelated">
         <div className="blockTitle"><div><p>MY SCHEDULE</p><h2>我的日程</h2></div></div>
         <section className="relatedList scheduleLinkList">
@@ -354,7 +340,7 @@ function Hero() {
   </section>;
 }
 
-function MobileActionHub({ scheduledReports, onOpen }:{scheduledReports:Report[];onOpen:(report:Report)=>void}) {
+function MobileActionHub({ scheduledReports, onOpen, onLocate }:{scheduledReports:Report[];onOpen:(report:Report)=>void;onLocate:(report:Report)=>void}) {
   const { report: nextReport, ongoing } = useNextScheduledReport(scheduledReports);
   return (
     <section className="mobileActionHub" aria-label="手机端重点功能">
@@ -364,7 +350,7 @@ function MobileActionHub({ scheduledReports, onOpen }:{scheduledReports:Report[]
           <small>{nextReport.dateTime.replace('2026-', '')}</small>
           <h2>{nextReport.sourceTitle}</h2>
           <p>{nextReport.speaker} · {nextReport.location}</p>
-          <div><button onClick={() => onOpen(nextReport)}>查看详情</button><button onClick={() => openShareMoment(nextReport)}>✦ 记录灵感</button></div>
+          <div><button onClick={() => onOpen(nextReport)}>查看详情</button><button onClick={() => onLocate(nextReport)} aria-haspopup="dialog">查看会场</button><button onClick={() => openShareMoment(nextReport)}>✦ 记录灵感</button></div>
         </> : <>
           <h2>{scheduledReports.length ? '听会结束，回看你的收获' : '先挑选你准备参加的报告'}</h2>
           <p>在报告卡片点击“加入日程”，这里会直接显示下一场。</p>
@@ -549,6 +535,7 @@ function MySchedule({
   celebratingReportId,
   unlockedPhraseCount,
   onOpen,
+  onLocate,
   onCheckIn,
   onOpenAtlas,
   onRemove,
@@ -562,6 +549,7 @@ function MySchedule({
   celebratingReportId: number | null;
   unlockedPhraseCount: number;
   onOpen: (report: Report) => void;
+  onLocate: (report?: Report) => void;
   onCheckIn: (report: Report) => void;
   onOpenAtlas: () => void;
   onRemove: (report: Report) => void;
@@ -616,6 +604,7 @@ function MySchedule({
             <div className="scheduleViewSwitch" role="group" aria-label="日程呈现方式">
               <button type="button" aria-pressed={scheduleView === 'calendar'} onClick={() => setScheduleView('calendar')}>日历视图</button>
               <button type="button" aria-pressed={scheduleView === 'list'} onClick={() => setScheduleView('list')}>清单视图</button>
+              <button type="button" onClick={() => onLocate()} aria-haspopup="dialog">会场地图</button>
             </div>
           </div>
         </header>
@@ -630,6 +619,7 @@ function MySchedule({
           <CalendarSchedule
             reports={scheduledReports}
             onOpen={onOpen}
+            onLocate={onLocate}
             onCheckIn={onCheckIn}
             attendedIds={attendedIds}
             celebratingReportId={celebratingReportId}
@@ -647,8 +637,10 @@ function MySchedule({
                         <small>{report.kind}{report.session ? ` · ${report.session}` : ''}</small>
                         <strong>{report.sourceTitle}</strong>
                         <span>{report.speaker} · {report.institution}</span>
+                        <span className="scheduleItemVenue">{report.location}</span>
                       </button>
                       <div className="scheduleItemActions">
+                        <button className="venueLocateButton" type="button" onClick={() => onLocate(report)} aria-label={`查看会场：${report.sourceTitle}`} aria-haspopup="dialog">查看会场</button>
                         <button className="scheduleItemCheckIn" type="button" aria-pressed={attendedIds.has(report.id)} onClick={() => onCheckIn(report)}>{attendedIds.has(report.id) ? '✓ 已打卡' : '✦ 现场打卡'}</button>
                         <button className="scheduleItemShare" type="button" onClick={() => onShare(report)} aria-label={`记录灵感：${report.sourceTitle}`}>✦ 记录灵感</button>
                         <button className="scheduleItemRemove" type="button" onClick={() => onRemove(report)} aria-label={`从我的日程移除：${report.sourceTitle}`}>移除</button>
@@ -677,6 +669,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
   const [direction, setDirection] = useState(DEFAULT_DIRECTION);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Report | null>(null);
+  const [mapReport, setMapReport] = useState<Report | null | undefined>(undefined);
   const [exportRequest, setExportRequest] = useState<ExportRequest | null>(null);
   const {
     favoriteSet,
@@ -820,10 +813,39 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
     }
   }, []);
 
+  const openVenueMap = useCallback((report?: Report) => {
+    setMapReport(report ?? null);
+    const url = new URL(location.href);
+    url.searchParams.set('venueReport', report ? String(report.id) : 'overview');
+    history.pushState({ ...history.state, cscoVenue: true }, '', url.pathname + url.search + url.hash);
+  }, []);
+
+  const closeVenueMap = useCallback(() => {
+    setMapReport(undefined);
+    if (history.state?.cscoVenue) {
+      history.back();
+    } else {
+      const url = new URL(location.href);
+      url.searchParams.delete('venueReport');
+      history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+    }
+  }, []);
+
+  const openReportFromMap = useCallback((report: Report) => {
+    const url = new URL(location.href);
+    url.searchParams.delete('venueReport');
+    url.hash = `report-${report.id}`;
+    history.replaceState({ reportId: report.id }, '', url.pathname + url.search + url.hash);
+    setMapReport(undefined);
+    setSelected(report);
+  }, []);
+
   useEffect(() => {
     const syncSelectionFromHash = () => {
       const id = Number(location.hash.match(/report-(\d+)/)?.[1]);
       setSelected(id ? REPORT_BY_ID.get(id) ?? null : null);
+      const venueReport = new URLSearchParams(location.search).get('venueReport');
+      setMapReport(venueReport === 'overview' ? null : venueReport ? REPORT_BY_ID.get(Number(venueReport)) : undefined);
     };
     queueMicrotask(syncSelectionFromHash);
     window.addEventListener('popstate', syncSelectionFromHash);
@@ -949,6 +971,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
           onCheckIn={openCheckInCard}
           onOpenAtlas={() => setCheckInAtlasOpen(true)}
           onOpen={openReport}
+          onLocate={openVenueMap}
           onRemove={removeScheduledReport}
           onClear={clearCustomSchedule}
           onExportNotes={() => setExportRequest({reports:[...scheduledReports],initialMode:'notes',clearFavoritesAfterExport:false})}
@@ -961,7 +984,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
         <p>本工具用于会议预习与提问准备，不构成医疗建议。题目、人员、时间与地点均取自CSCO官方日程；专题会未公布讲者单位的条目已明确标注。</p>
         <Link href={initialPage === 'schedule' ? '/learning#reports' : '#top'}>{initialPage === 'schedule' ? '返回报告看板 ←' : '回到顶部 ↑'}</Link>
       </footer>
-      {initialPage === 'schedule' && <MobileActionHub scheduledReports={scheduledReports} onOpen={openReport} />}
+      {initialPage === 'schedule' && <MobileActionHub scheduledReports={scheduledReports} onOpen={openReport} onLocate={openVenueMap} />}
       <MobileBottomNav activePage={initialPage} scheduleCount={scheduledReports.length} />
 
       {selected && (
@@ -969,6 +992,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
           key={selected.id}
           report={selected}
           scheduledReports={scheduledReports}
+          onLocate={openVenueMap}
           onClose={closeReport}
           onOpen={openReport}
           favorite={favoriteSet.has(selected.id)}
@@ -978,6 +1002,16 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
           onShare={openShareMoment}
         />
       )}
+      {mapReport !== undefined && <Suspense fallback={<div className="venueOpening" role="status"><p>正在载入会场地图…</p><button onClick={closeVenueMap}>取消</button></div>}>
+        <VenueNavigator
+          key={mapReport?.id ?? 'overview'}
+          scheduledReports={scheduledReports}
+          initialReport={mapReport}
+          onToggleSchedule={toggleScheduledReport}
+          onOpenReport={openReportFromMap}
+          onClose={closeVenueMap}
+        />
+      </Suspense>}
       <Suspense fallback={<div className="moduleLoading moduleLoadingFixed" role="status">正在准备工具…</div>}>
       {exportRequest && (
         <ExportCenter

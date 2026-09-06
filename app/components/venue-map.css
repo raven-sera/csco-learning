@@ -1,0 +1,88 @@
+.venueMap {
+  width:100%; max-width:100%; min-width:0; height:100%; min-height:0; overflow:auto;
+  display:flex; flex-direction:column; gap:8px; color:var(--ink); isolation:isolate;
+}
+.venueMap button, .venueMap select, .venueMap a { -webkit-tap-highlight-color:transparent; }
+.venueMap button {
+  min-width:44px; min-height:44px; padding:9px 13px; border:1px solid var(--line);
+  border-radius:var(--radius-sm); background:var(--paper-raised); color:var(--ink);
+  font:inherit; font-size:13px; font-weight:650; line-height:1.35; cursor:pointer;
+}
+.venueMap button:hover:not(:disabled) { border-color:var(--ink); background:var(--lime-soft); }
+.venueMap button[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--paper-raised); }
+.venueMap button:disabled { opacity:.45; cursor:default; }
+.venueMap :is(button, select, a, summary):focus-visible, .venueMap canvas:focus-visible, .venueMapSourceScroller:focus-visible {
+  outline:3px solid var(--coral); outline-offset:3px;
+}
+.venueMapToolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; flex-shrink:0; }
+.venueMapControlGroup { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+.venueMapZoom { position:absolute; right:8px; bottom:8px; z-index:4; padding:4px; border-radius:10px; background:rgba(255,255,255,.9); box-shadow:0 2px 8px rgba(18,35,27,.12); }
+.venueMapViewport {
+  position:relative; flex:1 0 180px; min-height:180px; min-width:0; overflow:hidden;
+  background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md);
+}
+.venueMapScene, .venueMapCanvasHost, .venueMapLabels { position:absolute; inset:0; }
+.venueMapScene[hidden] { display:none; }
+.venueMapCanvasHost { overflow:hidden; }
+.venueMapCanvasHost canvas { display:block; width:100%; height:100%; touch-action:none; cursor:grab; }
+.venueMapCanvasHost canvas:active { cursor:grabbing; }
+.venueMapCanvasHost canvas:focus-visible { outline-offset:-4px; }
+.venueMapLabels { overflow:hidden; pointer-events:none; }
+.venueMapLabel {
+  position:absolute; top:0; left:0; width:max-content; max-width:180px; padding:3px 6px;
+  border:1px solid rgba(141,151,143,.5); border-radius:5px; background:rgba(255,253,248,.95);
+  color:var(--ink); font-size:11px; line-height:1.4; font-weight:600; white-space:nowrap;
+  box-shadow:0 2px 5px rgba(18,35,27,.06); pointer-events:none;
+}
+.venueMapLabel.isSelected { background:var(--ink); color:var(--paper-raised); border-color:var(--lime); font-weight:750; z-index:3; }
+.venueMapLabel.isScheduled { background:var(--lime-soft); border-color:var(--line-strong); }
+.venueMapLabel.isReference { background:var(--coral); color:var(--ink); border-color:var(--ink); }
+.venueMapLabel.isEntrance { background:var(--paper-raised); border:2px solid var(--ink); font-weight:750; }
+.venueMapLabel.isFloor { background:var(--ink); color:var(--paper-raised); font-size:15px; padding:5px 9px; }
+.venueMapSourceScroller { position:absolute; inset:0; overflow:auto; overscroll-behavior:contain; background:var(--paper-raised); display:flex; }
+.venueMapSource { display:block; flex:none; height:auto; max-width:none; margin:auto; overflow:visible; }
+.venueMapRegion { cursor:pointer; outline:none; }
+.venueMapRegion polygon { fill:var(--room-color); fill-opacity:.10; stroke:var(--ink); stroke-width:1; stroke-opacity:.5; }
+.venueMapRegion.isScheduled polygon { fill:var(--lime); fill-opacity:.45; stroke:var(--ink); stroke-width:2; stroke-opacity:1; }
+.venueMapRegion.isReference polygon { fill:var(--coral); fill-opacity:.45; stroke:var(--coral); stroke-width:3; stroke-opacity:1; stroke-dasharray:6 3; }
+.venueMapRegion.isSelected polygon { fill:var(--ink); fill-opacity:.3; stroke:var(--ink); stroke-width:3; stroke-opacity:1; }
+.venueMapRegion:hover polygon, .venueMapRegion:focus-visible polygon { stroke:var(--coral); stroke-width:4; stroke-opacity:1; fill-opacity:.35; }
+.venueMapSourceEntrance { pointer-events:none; }
+.venueMapSourceEntrance circle { fill:var(--ink); stroke:var(--paper-raised); stroke-width:2; }
+.venueMapSourceEntrance text { fill:var(--ink); stroke:var(--paper-raised); stroke-width:3px; paint-order:stroke; font-size:14px; font-weight:750; }
+.venueMapLoading { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--muted); background:var(--paper); font-size:14px; }
+.venueMapNotice { display:flex; align-items:center; flex-wrap:wrap; gap:8px 14px; padding:10px 12px; background:var(--lime-soft); border-radius:var(--radius-sm); font-size:13px; line-height:1.6; }
+.venueMapNotice span { flex:1 1 240px; }
+.venueMapImageError { margin:auto; padding:24px; max-width:440px; color:var(--muted); font-size:14px; line-height:1.8; }
+.venueMapImageError a { display:inline-flex; align-items:center; min-height:44px; margin:0 10px; color:var(--ink); text-decoration:underline; }
+.venueMapSourceCaption { margin:0; color:var(--muted); font-size:12px; line-height:1.6; }
+.venueMapFooter { display:flex; flex-wrap:wrap; align-items:flex-start; gap:4px 16px; flex-shrink:0; min-width:0; }
+.venueMapFooter > .venueMapLegend { min-height:44px; }
+.venueMapDetails { min-width:0; flex:1 1 135px; }
+.venueMapDetails summary { min-height:44px; padding:12px 2px; color:var(--muted); font-size:12px; cursor:pointer; }
+.venueMapDetails[open] { flex-basis:100%; }
+.venueMapDetails[open] > :not(summary) { margin-bottom:8px; }
+.venueMapRoomPicker { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-width:0; max-width:100%; color:var(--muted); font-size:12px; }
+.venueMapRoomPicker select { min-width:0; max-width:100%; min-height:44px; width:230px; padding:9px 28px 9px 10px; border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--ink); background:var(--paper-raised); font:inherit; font-size:14px; }
+.venueMapLegend { display:flex; flex-wrap:wrap; align-items:center; gap:7px 15px; color:var(--muted); font-size:11px; line-height:1.6; }
+.venueMapLegend span { display:inline-flex; align-items:center; gap:5px; }
+.venueMapLegend i { display:inline-block; width:11px; height:11px; border:1px solid var(--line-strong); border-radius:3px; }
+.venueMapLegend i.isSelected { background:var(--ink); }
+.venueMapLegend i.isScheduled { background:var(--lime); }
+.venueMapLegend i.isReference { background:var(--coral); border-style:dashed; }
+.venueMapHint { flex-shrink:0; margin:0; color:var(--muted); font-size:11px; line-height:1.7; }
+@media (max-width:620px) {
+  .venueMapToolbar { gap:8px; }
+  .venueMap button { padding:9px 10px; font-size:12px; }
+  .venueMapControlGroup { gap:4px; }
+  .venueMapViewport { flex-basis:160px; min-height:160px; }
+  .venueMapRoomPicker { width:100%; }
+  .venueMapRoomPicker select { flex:1; width:auto; }
+  .venueMapLabel { font-size:10px; max-width:150px; }
+}
+@media (max-height:650px) {
+  .venueMapViewport { flex-basis:160px; min-height:160px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .venueMap *, .venueMap *::before, .venueMap *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; }
+}

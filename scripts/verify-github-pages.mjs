@@ -6,7 +6,8 @@ import path from 'node:path';
 export function verifyExport(root, basePath, origin) {
   const out = path.join(root, 'out');
   for (const file of ['index.html', 'learning/index.html', 'schedule/index.html', '404.html',
-    'huidu-logo.png', 'huidu-latest-qr.jpg', 'og.png', 'data/literature.json']) {
+    'huidu-logo.png', 'huidu-latest-qr.jpg', 'og.png', 'venue/three.min.js',
+    'venue/map-scene.js', 'venue/level1.jpg', 'venue/level2.png', 'venue/THREE-LICENSE.txt']) {
     assert.ok(existsSync(path.join(out, file)), `Missing exported file: ${file}`);
   }
   for (const file of ['index.html', 'learning/index.html', 'schedule/index.html', '404.html']) {
@@ -23,10 +24,10 @@ export function verifyExport(root, basePath, origin) {
     }
   }
   for (const file of ['learning/index.html', 'schedule/index.html']) {
-    assert.ok(readFileSync(path.join(out, file), 'utf8').includes('正在返回三合一入口'), `${file} bypasses portal`);
+    const html = readFileSync(path.join(out, file), 'utf8');
+    assert.ok(!/<script[^>]*src="[^"]*\/venue\//.test(html), `${file} eagerly loads the map engine`);
   }
   const home = readFileSync(path.join(out, 'index.html'), 'utf8');
-  assert.ok(home.includes('三合一'), 'Missing unified portal');
   assert.ok(home.includes(`${origin}${basePath}/og.png`), 'Incorrect social preview URL');
-  console.log('Verified: three routes, entry gate, repository paths, images and literature data.');
+  console.log('Verified: three routes, repository paths, preview image and lazy map assets.');
 }

@@ -112,7 +112,7 @@
   .reportCard dl dt { min-width:42px; font-size:12px; }
   .reportCard dl dd { font-size:14px; line-height:1.65; overflow-wrap:anywhere; }
   .cardActions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .mobileScheduleButton,.reportCard .favoriteButton { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:42px; padding:8px 12px; border:1px solid var(--line); border-radius:9px; font-size:14px; background:#f4f7f3; color:var(--ink); position:relative; z-index:3; }
+  .mobileScheduleButton,.reportCard .favoriteButton { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:42px; padding:8px 12px; border:1px solid var(--line); border-radius:9px; font-size:14px; background:#f4f7f3; color:var(--ink); position:relative; z-index:3; pointer-events:auto; }
   .mobileScheduleButton.isScheduled,.reportCard .favoriteButton.isFavorite { background:var(--lime-soft); border-color:#9dbb5d; }
   .openButton { margin-left:auto; font-size:12px; }
   .pagination button { min-height:44px; min-width:44px; font-size:14px; }
@@ -133,6 +133,17 @@
   .scheduleCart > header strong { font-size:20px; }
   .scheduleCartTools > b { font-size:12px; }
   .scheduleViewSwitch button { min-height:44px; font-size:14px; }
+  .scheduleCart > header { flex-wrap:wrap; }
+  .scheduleCart > header > .scheduleCartTools { flex-wrap:wrap; }
+  .scheduleItem { grid-template-columns:106px minmax(0,1fr); gap:12px 18px; }
+  .scheduleItemActions { grid-column:2; flex-wrap:wrap; justify-content:flex-start; }
+  .scheduleItemVenue { color:var(--lime)!important; }
+  .venueLocateButton { min-height:44px; padding:8px 13px; border:1px solid #9aae86; border-radius:9px; background:var(--lime-soft); color:var(--ink); font:inherit; font-size:13px; font-weight:700; line-height:1.4; cursor:pointer; }
+  .venueLocateButton:hover { background:var(--lime); border-color:var(--ink); }
+  .venueLocateButton:focus-visible { outline:3px solid var(--coral); outline-offset:3px; }
+  .detailMeta .venueLocateButton { align-self:start; margin-top:5px; font-size:14px; }
+  .venueOpening { position:fixed; inset:0; z-index:360; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; background:rgba(243,246,244,.98); color:var(--ink); font-size:16px; }
+  .venueOpening button { min-height:44px; padding:10px 24px; border:1px solid var(--line-strong); border-radius:9px; background:var(--paper-raised); color:inherit; cursor:pointer; }
   .scheduleItemOpen strong { font-size:16px; line-height:1.6; }
   .scheduleItemOpen span,.scheduleItemOpen small { font-size:12px; }
   .scheduleItem > time { font-size:14px; line-height:1.5; }
@@ -147,8 +158,6 @@
   .detailHero h1 { font-size:clamp(24px,3vw,40px); line-height:1.45; }
   .detailMeta small,.detailMeta span { font-size:12px; }
   .detailMeta strong { font-size:16px; }
-  .sourceList strong { font-size:16px; }
-  .sourceList small,.sourceList span { font-size:12px; }
   .noteToolbar button,.noteToolbar select { min-height:40px; font-size:14px; }
   .noteRichContent { font-size:16px; line-height:1.85; }
   .audioNoteSection { display:block!important; }
@@ -248,7 +257,7 @@
     .scheduleActions button { font-size:14px; min-height:48px; }
     .scheduleCart > header { gap:14px; flex-direction:column; align-items:stretch; }
     .scheduleCartTools { flex-direction:column; align-items:stretch; gap:10px; }
-    .scheduleViewSwitch { display:grid; grid-template-columns:1fr 1fr; }
+    .scheduleViewSwitch { display:grid; grid-template-columns:repeat(3,1fr); }
     .scheduleItem { grid-template-columns:1fr; gap:10px; }
     .scheduleItem > time,.scheduleItemOpen,.scheduleItemActions { grid-column:auto; grid-row:auto; }
     .scheduleItemActions { display:flex; flex-wrap:wrap; gap:8px; }

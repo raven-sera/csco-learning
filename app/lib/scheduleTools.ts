@@ -47,6 +47,7 @@ export function createCalendarFile(reports: readonly Report[], now = Date.now())
     if (!interval) continue;
     lines.push('BEGIN:VEVENT', `UID:csco2026-${report.id}@huidu`, `DTSTAMP:${calendarDate(now)}`, `DTSTART:${calendarDate(interval.start)}`, `DTEND:${calendarDate(interval.end)}`, `SUMMARY:${escapeCalendar(report.sourceTitle)}`, `LOCATION:${escapeCalendar(report.location)}`, `DESCRIPTION:${escapeCalendar(report.speaker + ' · ' + report.institution + '\n' + report.program)}`, 'END:VEVENT');
   }
+  lines.push('END:VCALENDAR');
   return lines.map(foldLine).join('\r\n') + '\r\n';
 }
 export function downloadCalendar(reports: readonly Report[]) {

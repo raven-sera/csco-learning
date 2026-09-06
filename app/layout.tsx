@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import './upgrade.css';
+import './components/venue-map.css';
+import './components/venue-navigator.css';
 import EntryGate from './components/EntryGate';
 import { publicPath } from './lib/sitePaths';
 

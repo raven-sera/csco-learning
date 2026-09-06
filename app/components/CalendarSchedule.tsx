@@ -7,9 +7,9 @@ import type { Report } from '../lib/reports';
 const CALENDAR_FIRST_MINUTE = 8 * 60;
 const CALENDAR_LAST_MINUTE = 20 * 60;
 const MIN_FOCUSED_SPAN = 3 * 60;
-const TARGET_EVENT_HEIGHT = 52;
+const TARGET_EVENT_HEIGHT = 100;
 const MIN_HOUR_HEIGHT = 112;
-const MAX_HOUR_HEIGHT = 1040;
+const MAX_HOUR_HEIGHT = 1200;
 
 const CALENDAR_DAYS = [
   { date: '2026-09-17', monthDay: '9.17', weekday: '周四' },
@@ -50,6 +50,7 @@ type CalendarScheduleProps = {
   reports: Report[];
   variant?: 'screen' | 'pdf';
   onOpen?: (report: Report) => void;
+  onLocate?: (report: Report) => void;
   onCheckIn?: (report: Report) => void;
   attendedIds?: ReadonlySet<number>;
   celebratingReportId?: number | null;
@@ -270,6 +271,7 @@ function CalendarEventCard({
   endMinute,
   variant,
   onOpen,
+  onLocate,
   onCheckIn,
   attended = false,
   celebrating = false,
@@ -279,6 +281,7 @@ function CalendarEventCard({
   endMinute: number;
   variant: 'screen' | 'pdf';
   onOpen?: (report: Report) => void;
+  onLocate?: (report: Report) => void;
   onCheckIn?: (report: Report) => void;
   attended?: boolean;
   celebrating?: boolean;
@@ -297,7 +300,7 @@ function CalendarEventCard({
   const style = eventStyle(event, startMinute, endMinute, variant);
   const className = `calendarEvent ${attended ? 'isAttended' : ''} ${celebrating ? 'isCelebrating' : ''}`;
 
-  if (!onOpen && !onCheckIn) {
+  if (!onOpen && !onCheckIn && !onLocate) {
     return <article className={className} style={style} aria-label={accessibleLabel}>{content}</article>;
   }
 
@@ -306,6 +309,8 @@ function CalendarEventCard({
       {onOpen
         ? <button className="calendarEventOpen" type="button" onClick={() => onOpen(event.report)} aria-label={accessibleLabel} title={accessibleLabel}>{content}</button>
         : content}
+      <div className="calendarEventActions">
+      {onLocate && <button className="calendarEventLocate" type="button" onClick={() => onLocate(event.report)} aria-label={`查看会场：${accessibleLabel}`} aria-haspopup="dialog">查看会场</button>}
       {onCheckIn && <button
         className="calendarEventCheckIn"
         type="button"
@@ -313,6 +318,7 @@ function CalendarEventCard({
         onClick={() => onCheckIn(event.report)}
         aria-label={`${attended ? '查看打卡卡片' : '参加打卡'}：${accessibleLabel}`}
       >{attended ? '✓ 已打卡' : '✦ 打卡'}</button>}
+      </div>
     </article>
   );
 }
@@ -322,6 +328,7 @@ export default function CalendarSchedule({
   reports,
   variant = 'screen',
   onOpen,
+  onLocate,
   onCheckIn,
   attendedIds,
   celebratingReportId,
@@ -406,6 +413,7 @@ export default function CalendarSchedule({
                     endMinute={layout.endMinute}
                     variant={variant}
                     onOpen={onOpen}
+                    onLocate={variant === 'screen' ? onLocate : undefined}
                     onCheckIn={onCheckIn}
                     attended={attendedIds?.has(event.report.id)}
                     celebrating={celebratingReportId === event.report.id}
