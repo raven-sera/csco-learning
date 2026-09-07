@@ -23,6 +23,7 @@
     "@tiptap/pm": "3.30.5",
     "@tiptap/react": "3.30.5",
     "@tiptap/starter-kit": "3.30.5",
+    "fflate": "0.8.2",
     "html2canvas": "1.4.1",
     "jspdf": "3.0.4",
     "next": "16.2.6",

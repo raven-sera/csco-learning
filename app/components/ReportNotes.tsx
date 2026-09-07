@@ -22,6 +22,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { createPortal } from 'react-dom';
 import type { Report } from '../lib/reports';
+import ReportSlides from './ReportSlides';
 import { BrandLockup, HuiduQrCallout } from './BrandLockup';
 const renderPdf: typeof import('./ExportCenter').renderPdf = async (...args) => (await import('./ExportCenter')).renderPdf(...args);
 
@@ -968,13 +969,14 @@ export default function ReportNotes({ report }: { report: Report }) {
     <section className="learningSection noteEditorSection">
       <div className="noteEditorHeading">
         <div>
-          <span className="sectionKicker desktopRecordingCopy">听会记录 · 录音优先 · 本机存储</span>
-          <span className="sectionKicker mobileTextNoteCopy">听会记录 · 富文本 · 本机存储</span>
+          <span className="sectionKicker desktopRecordingCopy">听会记录 · PPT 照片 · 录音与文本</span>
+          <span className="sectionKicker mobileTextNoteCopy">听会记录 · 随拍随存 · 按报告归档</span>
           <h3>笔记区</h3>
-          <p className="desktopRecordingCopy">先启动录音保留现场信息，再用文本整理结论、证据与待追问的问题。</p>
-          <p className="mobileTextNoteCopy">用文本整理现场结论、数据证据与待追问的问题，内容会自动保存在本机。</p>
+          <p className="desktopRecordingCopy">把 PPT 照片、现场录音和文本结论留在同一场报告下，回看时不再翻找相册。</p>
+          <p className="mobileTextNoteCopy">先拍下本场 PPT，再补充文字心得；照片自动归入当前报告，可整理成册导出。</p>
         </div>
       </div>
+      <ReportSlides key={report.id} report={report} />
       <RecordingPanel recordings={recordings} />
       <div className="textNoteHeading">
         <div><span className="sectionKicker">富文本 · 自动保存</span><h4>文本笔记</h4></div>
@@ -1001,8 +1003,8 @@ export default function ReportNotes({ report }: { report: Report }) {
       </div>
       <div className="noteStorageNotice" role="note">
         <b>仅保存在本机</b>
-        <p className="desktopRecordingCopy">笔记和录音目前只保存在当前浏览器，清除站点数据或更换设备后不会自动同步，重要录音应及时下载。</p>
-        <p className="mobileTextNoteCopy">笔记目前只保存在当前浏览器，清除站点数据或更换设备后不会自动同步，重要内容请及时导出。</p>
+        <p className="desktopRecordingCopy">笔记、PPT 照片和录音只保存在当前浏览器，不会上传到服务器。清除站点数据或更换设备后不会自动同步，请及时导出重要内容。</p>
+        <p className="mobileTextNoteCopy">笔记和 PPT 照片只保存在当前浏览器，不会上传到服务器。清除站点数据或更换设备后不会自动同步，请及时导出；仅在会议允许时拍摄与使用。</p>
       </div>
       {exportSnapshot && (
         <SingleNoteExport

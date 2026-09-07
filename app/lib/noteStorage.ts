@@ -2,6 +2,7 @@ import { deferred } from './deferred';
 const NOTES_DATABASE = 'csco-report-notes';
 const NOTES_STORE = 'notes';
 const RECORDINGS_STORE = 'recordings';
+const SLIDES_STORE = 'slides';
 const LEGACY_NOTE_KEY = 'csco-report-note-';
 const FALLBACK_NOTE_KEY = 'csco-report-note-html-';
 
@@ -20,6 +21,21 @@ export type StoredRecording = {
   mimeType: string;
   durationMs: number;
   createdAt: number;
+};
+
+export type StoredSlide = {
+  id: string;
+  reportId: number;
+  name: string;
+  original: Blob;
+  thumbnail: Blob;
+  width: number;
+  height: number;
+  createdAt: number;
+  order: number;
+  processed?: Blob;
+  processedThumbnail?: Blob;
+  mode: 'original' | 'processed';
 };
 
 let notesDatabasePromise: Promise<IDBDatabase> | null = null;
@@ -43,7 +59,8 @@ function openNotesDatabase() {
   if (notesDatabasePromise) return notesDatabasePromise;
   const { promise, resolve, reject } = deferred<IDBDatabase>();
   notesDatabasePromise = promise;
-  const request = indexedDB.open(NOTES_DATABASE, 1);
+  let blocked = false;
+  const request = indexedDB.open(NOTES_DATABASE, 2);
   request.onupgradeneeded = () => {
     const database = request.result;
     if (!database.objectStoreNames.contains(NOTES_STORE)) {
@@ -53,15 +70,23 @@ function openNotesDatabase() {
       const store = database.createObjectStore(RECORDINGS_STORE, { keyPath: 'id' });
       store.createIndex('reportId', 'reportId');
     }
+    if (!database.objectStoreNames.contains(SLIDES_STORE)) {
+      const store = database.createObjectStore(SLIDES_STORE, { keyPath: 'id' });
+      store.createIndex('reportId', 'reportId');
+    }
   };
   request.onsuccess = () => {
     const database = request.result;
+    if (blocked) { database.close(); return; }
     database.onversionchange = () => { database.close(); notesDatabasePromise = null; };
     database.onclose = () => { notesDatabasePromise = null; };
     resolve(database);
   };
   request.onerror = () => reject(request.error ?? new Error('Unable to open note storage.'));
-  request.onblocked = () => reject(new Error('Note storage upgrade is blocked by another tab.'));
+  request.onblocked = () => {
+    blocked = true;
+    reject(new Error('请关闭其他已打开的 CSCO 页面，再重试载入本机资料。'));
+  };
   void notesDatabasePromise.catch(() => {
     notesDatabasePromise = null;
   });
@@ -100,6 +125,37 @@ export async function removeRecordingRecord(id: string) {
   const database = await openNotesDatabase();
   const transaction = database.transaction(RECORDINGS_STORE, 'readwrite');
   transaction.objectStore(RECORDINGS_STORE).delete(id);
+  await transactionComplete(transaction);
+}
+
+export async function readSlideRecords(reportId: number): Promise<StoredSlide[]> {
+  const database = await openNotesDatabase();
+  const transaction = database.transaction(SLIDES_STORE, 'readonly');
+  const index = transaction.objectStore(SLIDES_STORE).index('reportId');
+  const records = await requestResult(index.getAll(IDBKeyRange.only(reportId))) as StoredSlide[];
+  return records.sort((left, right) => left.order - right.order || left.createdAt - right.createdAt || left.id.localeCompare(right.id));
+}
+
+export async function writeSlideRecords(records: StoredSlide[]): Promise<void> {
+  if (!records.length) return;
+  const database = await openNotesDatabase();
+  const transaction = database.transaction(SLIDES_STORE, 'readwrite');
+  const completed = transactionComplete(transaction);
+  try {
+    const store = transaction.objectStore(SLIDES_STORE);
+    for (const record of records) store.put(record);
+  } catch (error) {
+    transaction.abort();
+    await completed.catch(() => {});
+    throw error;
+  }
+  await completed;
+}
+
+export async function removeSlideRecord(id: string): Promise<void> {
+  const database = await openNotesDatabase();
+  const transaction = database.transaction(SLIDES_STORE, 'readwrite');
+  transaction.objectStore(SLIDES_STORE).delete(id);
   await transactionComplete(transaction);
 }
 
