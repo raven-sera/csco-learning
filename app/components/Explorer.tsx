@@ -13,7 +13,10 @@ import type { ExportMode } from './ExportCenter';
 const ExportCenter = lazy(() => import('./ExportCenter'));
 import { BrandLockup } from './BrandLockup';
 const ReportNotes = lazy(() => import('./ReportNotes'));
-import ShareMoment, { SHARE_MOMENT_OPEN_EVENT, type ShareMomentContext } from './ShareMomentHost';
+const PersonalLibrary = lazy(() => import('./PersonalLibrary'));
+import { NOTEBOOK_OPEN_EVENT, requestNotebook, type NotebookOpenOptions } from '../lib/libraryTypes';
+import { LIBRARY_CHANGE_EVENT, readLibrarySummaries, type LibrarySummary } from '../lib/noteStorage';
+import './library-shell.css';
 import {
   directions, fields, reportKindCounts, reports, searchScore,
   sortReportsByDateTime, type Report,
@@ -34,6 +37,7 @@ const CHECK_IN_KEY = 'csco-report-attendance-v1';
 const NAV_ITEMS = [
   { id: 'reports', label: '报告看板', href: '/learning#reports' },
   { id: 'schedule', label: '我的日程', href: '/schedule' },
+  { id: 'library', label: '个人图书馆', href: '/library' },
 ] as const;
 
 const ACADEMIC_UNIT_PATTERN = /大学|学院|学校|研究生院|University|Univeristy|College|School of/i;
@@ -91,15 +95,25 @@ type ExportRequest = {
   clearFavoritesAfterExport:boolean;
 };
 
-function openShareMoment(report?: Report) {
-  const detail: ShareMomentContext | null = report ? {
-    title: report.sourceTitle,
-    speaker: report.speaker,
-    program: report.program,
-    session: report.session,
-    dateTime: report.dateTime,
-  } : null;
-  window.dispatchEvent(new CustomEvent<ShareMomentContext | null>(SHARE_MOMENT_OPEN_EVENT, { detail }));
+function notebookHash(reportId: number, options: NotebookOpenOptions = {}) {
+  const params = new URLSearchParams();
+  if (options.section) params.set('section', options.section);
+  if (options.mode) params.set('mode', options.mode);
+  if (options.capture) params.set('capture', '1');
+  if (options.slideId) params.set('slide', options.slideId);
+  return `#report-${reportId}${params.size ? `?${params}` : ''}`;
+}
+
+function notebookOptions(hash: string): NotebookOpenOptions {
+  const params = new URLSearchParams(hash.split('?')[1] || '');
+  const section = params.get('section');
+  const mode = params.get('mode');
+  return {
+    section: section === 'slides' || section === 'text' || section === 'audio' ? section : undefined,
+    mode: mode === 'read' || mode === 'edit' ? mode : undefined,
+    capture: params.get('capture') === '1',
+    slideId: params.get('slide') || undefined,
+  };
 }
 
 function useNextScheduledReport(input: readonly Report[]) {
@@ -182,54 +196,34 @@ const ReportCard = memo(function ReportCard({
 });
 
 
-function DetailView({ report, scheduledReports, onClose, onOpen, onLocate, favorite, onToggleFavorite, scheduled, onToggleSchedule, onShare }:{report:Report;scheduledReports:Report[];onClose:()=>void;onOpen:(r:Report)=>void;onLocate:(report:Report)=>void;favorite:boolean;onToggleFavorite:(report:Report)=>void;scheduled:boolean;onToggleSchedule:(report:Report)=>void;onShare:(report:Report)=>void}) {
-  const closeRef=useRef<HTMLButtonElement>(null);
+function DetailView({ report, onClose, onLocate, favorite, onToggleFavorite, scheduled, onToggleSchedule, options, returnLabel }:{
+  report:Report; onClose:()=>void; onLocate:(report:Report)=>void; favorite:boolean;
+  onToggleFavorite:(report:Report)=>void; scheduled:boolean; onToggleSchedule:(report:Report)=>void;
+  options:NotebookOpenOptions; returnLabel:string;
+}) {
   useDialog('.detailOverlay', onClose);
   return (
-    <div className="detailOverlay" role="dialog" aria-modal="true" aria-labelledby="detail-title"><div className="detailShell">
-      <header className="detailTopbar"><button ref={closeRef} onClick={onClose} className="backButton">← 返回看板</button><div className="detailTopActions"><button className={`detailFavoriteButton ${favorite?'isFavorite':''}`} onClick={()=>onToggleFavorite(report)} aria-pressed={favorite}><span>{favorite?'★':'☆'}</span>{favorite?'已收藏':'收藏'}</button><a href={report.officialUrl} target="_blank" rel="noreferrer">官方日程 ↗</a></div></header>
-      <section className="detailHero">
-        <div className="detailTags"><span className="contentTypeTag" data-kind={report.kind}>{report.kind}</span><span>{report.kind === '汇报分享' ? report.scheduleCategory : report.field}</span><span className="programTag">{report.program}</span>{report.session && <span className="sessionTag">{report.session}</span>}{report.kind === '口头报告' && report.directions.slice(0,2).map((d)=><span key={d}>{d}</span>)}</div>
+    <div className="detailOverlay notebookDetailOverlay" role="dialog" aria-modal="true" aria-labelledby="detail-title"><div className="detailShell notebookDetailShell">
+      <header className="detailTopbar"><button onClick={onClose} className="backButton">← {returnLabel}</button>
+        <div className="detailTopActions"><button className={`detailFavoriteButton ${favorite?'isFavorite':''}`} onClick={()=>onToggleFavorite(report)} aria-pressed={favorite}>{favorite?'已收藏':'收藏'}</button><Link href="/library">个人图书馆</Link></div>
+      </header>
+      <section className="notebookReportHeader">
+        <p>{report.field} · {report.speaker}</p>
         <h1 id="detail-title">{report.sourceTitle}</h1>
-        <div className="detailMeta"><div><small>{report.kind === '汇报分享' ? '汇报人' : '报告人'}</small><strong>{report.speaker}</strong><span>{report.institution}</span></div><div><small>时间</small><strong>{report.dateTime}</strong><span>日程类别：{report.scheduleCategory}</span></div><div><small>地点</small><strong>{report.location}</strong><span>依据CSCO官方日程</span><button className="venueLocateButton" onClick={() => onLocate(report)} aria-haspopup="dialog">查看会场</button></div></div>
+        <div className="notebookReportLine"><span>{report.dateTime}</span><span>{report.location}</span></div>
+        <details className="notebookReportDetails"><summary>完整报告信息与日程</summary>
+          <dl><div><dt>报告人</dt><dd>{report.speaker} · {report.institution}</dd></div><div><dt>专场</dt><dd>{report.program}{report.session ? ` / ${report.session}` : ''}</dd></div><div><dt>类型</dt><dd>{report.kind} · {report.scheduleCategory}</dd></div></dl>
+          <div><button className="venueLocateButton" onClick={() => onLocate(report)}>查看会场</button><button onClick={() => onToggleSchedule(report)} aria-pressed={scheduled}>{scheduled ? '已加入日程' : '加入日程'}</button><a href={report.officialUrl} target="_blank" rel="noreferrer">官方日程 ↗</a></div>
+        </details>
+        <nav className="notebookQuickActions" aria-label="本场笔记快捷操作">
+          <button onClick={() => requestNotebook(report.id, { section:'slides', capture:true, mode:'edit' })}>拍 PPT</button>
+          <button onClick={() => requestNotebook(report.id, { section:'text', mode:'edit' })}>写笔记</button>
+          <button onClick={() => requestNotebook(report.id, { mode:'read' })}>阅读本场资料</button>
+        </nav>
       </section>
-      <nav className="mobileDetailActions" aria-label="当前报告快捷操作">
-        <span className="mobileDetailActionLabel">本场快捷操作</span>
-        <button className={scheduled ? 'isScheduled' : ''} onClick={() => onToggleSchedule(report)} aria-pressed={scheduled}>{scheduled ? '✓ 已加入日程' : '＋ 加入日程'}</button>
-        <button onClick={() => onShare(report)}>✦ 记录灵感</button>
-      </nav>
-      <div className="detailColumns"><main className="backgroundPanel">
-        <Suspense fallback={<p className="moduleLoading" role="status">正在载入笔记编辑器…</p>}><ReportNotes report={report} /></Suspense>
-      </main><aside className="relatedPanel"><div className="stickyRelated">
-        <div className="blockTitle"><div><p>MY SCHEDULE</p><h2>我的日程</h2></div></div>
-        <section className="relatedList scheduleLinkList">
-          <div className="relatedHeading"><h3>准备前往的报告</h3><span>{scheduledReports.length} 场</span></div>
-          {scheduledReports.length > 0 ? scheduledReports.map((item) => {
-            const current = item.id === report.id;
-            return (
-              <button
-                className={current ? 'isCurrent' : ''}
-                key={item.id}
-                aria-current={current ? 'page' : undefined}
-                onClick={() => {
-                  onOpen(item);
-                  document.querySelector('.detailOverlay')?.scrollTo(0, 0);
-                }}
-              >
-                <small>{current ? '当前报告' : `${item.kind}${item.session ? ` · ${item.session}` : ''}`}</small>
-                <strong>{item.sourceTitle}</strong>
-                <span><b>{item.dateTime.replace('2026-', '')}</b> · {item.speaker}</span>
-              </button>
-            );
-          }) : (
-            <div className="scheduleLinkEmpty">
-              <b>我的日程还是空的</b>
-              <p className="desktopScheduleCopy">返回看板收藏报告并上传日程后，这里会出现可直接跳转的报告链接。</p>
-              <p className="mobileScheduleCopy">返回报告列表，点击“加入日程”即可在这里快速打开。</p>
-            </div>
-          )}
-        </section>
-      </div></aside></div>
+      <div className="notebookDetailContent"><Suspense fallback={<p className="moduleLoading" role="status">正在载入本场资料…</p>}>
+        <ReportNotes report={report} initialSection={options.section} initialMode={options.mode ?? 'read'} autoCapture={options.capture} initialSlideId={options.slideId} />
+      </Suspense></div>
     </div></div>
   );
 }
@@ -330,13 +324,13 @@ function SiteHeader({ activePage }: { activePage: ActivePage }) {
   );
 }
 
-function Hero() {
+function Hero({ entries }: { entries: LibrarySummary[] }) {
   return <section className="workspaceHero" id="top">
     <div><p className="workspaceEyebrow">CSCO 2026 · 9.17—9.19</p><h1>把听会安排好，<em>把收获留下来。</em></h1>
       <p>检索 {reports.length} 场会议内容，收藏、排期、记录，一站完成。</p>
       <dl>{HERO_METRICS.map(metric => <div key={metric.label}><dt>{metric.value}</dt><dd>{metric.label}</dd></div>)}</dl>
     </div>
-    <div className="workspaceShortcuts"><Link href="/schedule"><span>▦</span><div><strong>我的日程</strong><small>三日听会安排</small></div><b>→</b></Link><button onClick={() => openShareMoment()}><span>✦</span><div><strong>记录灵感</strong><small>图文分享卡片</small></div><b>→</b></button></div>
+    <div className="workspaceShortcuts"><Link href="/schedule"><span>▦</span><div><strong>我的日程</strong><small>三日听会安排</small></div><b>→</b></Link><Link href="/library"><span>▤</span><div><strong>个人图书馆</strong><small>{entries.length ? `${entries.length} 场资料 · 随时继续阅读` : '笔记 · PPT · 录音归档'}</small></div><b>→</b></Link></div>
   </section>;
 }
 
@@ -350,19 +344,17 @@ function MobileActionHub({ scheduledReports, onOpen, onLocate }:{scheduledReport
           <small>{nextReport.dateTime.replace('2026-', '')}</small>
           <h2>{nextReport.sourceTitle}</h2>
           <p>{nextReport.speaker} · {nextReport.location}</p>
-          <div><button onClick={() => onOpen(nextReport)}>查看详情</button><button onClick={() => onLocate(nextReport)} aria-haspopup="dialog">查看会场</button><button onClick={() => openShareMoment(nextReport)}>✦ 记录灵感</button></div>
+          <div><button onClick={() => onOpen(nextReport)}>查看详情</button><button onClick={() => onLocate(nextReport)} aria-haspopup="dialog">查看会场</button><button onClick={() => requestNotebook(nextReport.id, {section:'slides', mode:'edit', capture:true})}>拍 PPT</button><button onClick={() => requestNotebook(nextReport.id, {section:'text', mode:'edit'})}>写笔记</button></div>
         </> : <>
           <h2>{scheduledReports.length ? '听会结束，回看你的收获' : '先挑选你准备参加的报告'}</h2>
           <p>在报告卡片点击“加入日程”，这里会直接显示下一场。</p>
           <Link className="mobileNextEmptyAction" href="/learning#reports">浏览会议内容 →</Link>
         </>}
       </article>
-      <button className="mobileShareSpotlight" onClick={() => openShareMoment()}>
-        <span>✦ MOMENT STUDIO</span>
-        <strong>分享灵感瞬间</strong>
-        <p>现场拍照或写下一句话，快速生成分享卡片。</p>
-        <b>拍照 · 图文 · 文字海报 ↗</b>
-      </button>
+      <Link className="librarySpotlight" href="/library">
+        <span>PERSONAL LIBRARY</span><strong>回看我的听会资料</strong>
+        <p>文字、PPT 与录音按报告自动归档。</p><b>打开个人图书馆 →</b>
+      </Link>
     </section>
   );
 }
@@ -372,7 +364,7 @@ function MobileBottomNav({activePage,scheduleCount}:{activePage:ActivePage;sched
     <nav className="mobileBottomNav" aria-label="手机端主要导航"><Link href="/" aria-label="返回三合一入口"><span>⌂</span><b>三合一</b></Link>
       <Link className={activePage === 'reports' ? 'isActive' : ''} href="/learning#reports" aria-current={activePage === 'reports' ? 'page' : undefined}><span>⌕</span><b>报告</b></Link>
       <Link className={activePage === 'schedule' ? 'isActive' : ''} href="/schedule" aria-current={activePage === 'schedule' ? 'page' : undefined}><span>▣<i>{scheduleCount}</i></span><b>我的日程</b></Link>
-      <button type="button" onClick={() => openShareMoment()}><span>✦</span><b>灵感分享</b></button>
+      <Link className={activePage === 'library' ? 'isActive' : ''} href="/library" aria-current={activePage === 'library' ? 'page' : undefined}><span>▤</span><b>图书馆</b></Link>
     </nav>
   );
 }
@@ -542,7 +534,7 @@ function MySchedule({
   onClear,
   onExportNotes,
   onExportSchedule,
-  onShare,
+  noteIds,
 }: {
   scheduledReports: Report[];
   attendedIds: ReadonlySet<number>;
@@ -556,7 +548,7 @@ function MySchedule({
   onClear: () => void;
   onExportNotes: () => void;
   onExportSchedule: () => void;
-  onShare: (report: Report) => void;
+  noteIds: ReadonlySet<number>;
 }) {
   const [scheduleView, setScheduleView] = useState<'calendar' | 'list'>('list');
   const conflicts = useMemo(() => scheduleConflicts(scheduledReports), [scheduledReports]);
@@ -642,7 +634,8 @@ function MySchedule({
                       <div className="scheduleItemActions">
                         <button className="venueLocateButton" type="button" onClick={() => onLocate(report)} aria-label={`查看会场：${report.sourceTitle}`} aria-haspopup="dialog">查看会场</button>
                         <button className="scheduleItemCheckIn" type="button" aria-pressed={attendedIds.has(report.id)} onClick={() => onCheckIn(report)}>{attendedIds.has(report.id) ? '✓ 已打卡' : '✦ 现场打卡'}</button>
-                        <button className="scheduleItemShare" type="button" onClick={() => onShare(report)} aria-label={`记录灵感：${report.sourceTitle}`}>✦ 记录灵感</button>
+                        <button className="scheduleItemNotes" type="button" onClick={() => requestNotebook(report.id, {section:'text',mode:'edit'})} aria-label={`写笔记：${report.sourceTitle}`}>{noteIds.has(report.id) ? '继续记录' : '记笔记'}</button>
+                        <button className="scheduleItemNotes" type="button" onClick={() => requestNotebook(report.id, {section:'slides',mode:'edit',capture:true})} aria-label={`拍摄PPT：${report.sourceTitle}`}>拍 PPT</button>
                         <button className="scheduleItemRemove" type="button" onClick={() => onRemove(report)} aria-label={`从我的日程移除：${report.sourceTitle}`}>移除</button>
                       </div>
                     </article>
@@ -669,6 +662,13 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
   const [direction, setDirection] = useState(DEFAULT_DIRECTION);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Report | null>(null);
+  const [noteOptions, setNoteOptions] = useState<NotebookOpenOptions>({});
+  const [libraryEntries, setLibraryEntries] = useState<LibrarySummary[]>([]);
+  const noteIds = useMemo(() => new Set(libraryEntries.map(entry => entry.reportId)), [libraryEntries]);
+  const recordingActive = useRef(false);
+  const selectionRef = useRef<Report | null>(null);
+  const navigationRequest = useRef(0);
+  useEffect(() => { selectionRef.current = selected; }, [selected]);
   const [mapReport, setMapReport] = useState<Report | null | undefined>(undefined);
   const [exportRequest, setExportRequest] = useState<ExportRequest | null>(null);
   const {
@@ -748,7 +748,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
   }, [clearSchedule, scheduledReports.length]);
 
   const filtered = useMemo(() => {
-    if (initialPage === 'schedule') return [];
+    if (initialPage !== 'reports') return [];
     const ranked: { report: Report; score: number }[] = [];
     const hasQuery = Boolean(deferredQuery.trim());
 
@@ -798,20 +798,41 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
     });
   }, [totalPages]);
 
-  const openReport = useCallback((report: Report) => {
-    setSelected(report);
-    const nextHash = `#report-${report.id}`;
-    if (location.hash !== nextHash) {
-      history.pushState({ reportId: report.id }, '', nextHash);
-    }
+  const mayLeaveNotebook = useCallback(() => {
+    if (!recordingActive.current) return true;
+    window.alert('录音正在进行或保存中，请先在笔记中停止并保存录音，再离开本场报告。');
+    return false;
   }, []);
 
-  const closeReport = useCallback(() => {
+  const flushNotebook = useCallback(async () => {
+    if (!mayLeaveNotebook()) return false;
+    const promises: Promise<unknown>[] = [];
+    window.dispatchEvent(new CustomEvent('csco:flush-notebook', { detail: { promises } }));
+    try { await Promise.all(promises); return true; }
+    catch (error) {
+      window.alert(error instanceof Error ? `资料尚未全部保存：${error.message}` : '资料尚未全部保存，请保留当前页面并重试。');
+      return false;
+    }
+  }, [mayLeaveNotebook]);
+
+  const openReport = useCallback(async (report: Report, options: NotebookOpenOptions = {}) => {
+    const request = ++navigationRequest.current;
+    if (selectionRef.current && selectionRef.current.id !== report.id && !await flushNotebook()) return;
+    if (request !== navigationRequest.current) return;
+    setNoteOptions(options);
+    setSelected(report);
+    const nextHash = notebookHash(report.id, options);
+    if (location.hash !== nextHash) history.pushState({ ...history.state, reportId: report.id }, '', nextHash);
+  }, [flushNotebook]);
+
+  const closeReport = useCallback(async () => {
+    const request = ++navigationRequest.current;
+    if (!await flushNotebook() || request !== navigationRequest.current) return;
     setSelected(null);
     if (location.hash.startsWith('#report-')) {
-      history.replaceState(null, '', location.pathname + location.search);
+      history.replaceState(history.state, '', location.pathname + location.search);
     }
-  }, []);
+  }, [flushNotebook]);
 
   const openVenueMap = useCallback((report?: Report) => {
     setMapReport(report ?? null);
@@ -831,18 +852,69 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
     }
   }, []);
 
-  const openReportFromMap = useCallback((report: Report) => {
+  const openReportFromMap = useCallback(async (report: Report) => {
+    if (!await flushNotebook()) return;
     const url = new URL(location.href);
     url.searchParams.delete('venueReport');
     url.hash = `report-${report.id}`;
     history.replaceState({ reportId: report.id }, '', url.pathname + url.search + url.hash);
     setMapReport(undefined);
+    setNoteOptions({});
     setSelected(report);
-  }, []);
+  }, [flushNotebook]);
 
   useEffect(() => {
-    const syncSelectionFromHash = () => {
-      const id = Number(location.hash.match(/report-(\d+)/)?.[1]);
+    let cancelled = false;
+    const loadLibrary = () => {
+      void readLibrarySummaries().then(entries => { if (!cancelled) setLibraryEntries(entries); })
+        .catch(() => { /* Library page provides explicit recovery UI; navigation remains usable. */ });
+    };
+    const libraryChanged = (event: Event) => {
+      if ((event as CustomEvent).detail?.kind !== 'reading') loadLibrary();
+    };
+    const notebookRequested = (event: Event) => {
+      const detail = (event as CustomEvent<{reportId:number;options:NotebookOpenOptions}>).detail;
+      const report = REPORT_BY_ID.get(detail?.reportId);
+      if (report) openReport(report, detail.options);
+    };
+    const recordingChanged = (event: Event) => { recordingActive.current = !!(event as CustomEvent).detail?.active; };
+    let replayingNavigation = false;
+    const guardNavigation = (event: MouseEvent) => {
+      const anchor = (event.target as Element)?.closest?.<HTMLAnchorElement>('a[href]');
+      if (!anchor || replayingNavigation || !selectionRef.current || anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+      const href = anchor.getAttribute('href') || '';
+      if (href.startsWith('#csco-slide=')) return;
+      event.preventDefault(); event.stopPropagation();
+      void flushNotebook().then(saved => {
+        if (!saved || cancelled) return;
+        replayingNavigation = true;
+        try { anchor.click(); } finally { replayingNavigation = false; }
+      });
+    };
+    loadLibrary();
+    window.addEventListener(LIBRARY_CHANGE_EVENT, libraryChanged);
+    window.addEventListener(NOTEBOOK_OPEN_EVENT, notebookRequested);
+    window.addEventListener('csco:recording-state', recordingChanged);
+    document.addEventListener('click', guardNavigation, true);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(LIBRARY_CHANGE_EVENT, libraryChanged);
+      window.removeEventListener(NOTEBOOK_OPEN_EVENT, notebookRequested);
+      window.removeEventListener('csco:recording-state', recordingChanged);
+      document.removeEventListener('click', guardNavigation, true);
+    };
+  }, [openReport, flushNotebook]);
+
+  useEffect(() => {
+    const syncSelectionFromHash = async () => {
+      const hash = location.hash;
+      const id = Number(hash.match(/report-(\d+)/)?.[1]);
+      if (selectionRef.current && id !== selectionRef.current.id && !await flushNotebook()) {
+        history.pushState(history.state, '', notebookHash(selectionRef.current.id));
+        return;
+      }
+      if (hash !== location.hash) return;
+      setNoteOptions(notebookOptions(location.hash));
       setSelected(id ? REPORT_BY_ID.get(id) ?? null : null);
       const venueReport = new URLSearchParams(location.search).get('venueReport');
       setMapReport(venueReport === 'overview' ? null : venueReport ? REPORT_BY_ID.get(Number(venueReport)) : undefined);
@@ -854,10 +926,10 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
       window.removeEventListener('popstate', syncSelectionFromHash);
       window.removeEventListener('hashchange', syncSelectionFromHash);
     };
-  }, []);
+  }, [flushNotebook]);
 
   return (
-    <main className={initialPage === 'schedule' ? 'schedulePage' : 'reportsPage'}>
+    <main className={initialPage === 'schedule' ? 'schedulePage' : initialPage === 'library' ? 'libraryPage' : 'reportsPage'}>
       <SiteHeader activePage={initialPage} />
       {initialPage === 'reports' && <>
       {favoriteReports.length > 0 && (
@@ -873,7 +945,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
         </aside>
       )}
 
-      <Hero />
+      <Hero entries={libraryEntries} />
 
       <SearchPanel
         query={query}
@@ -962,6 +1034,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
       </section>
       </>}
 
+      {initialPage === 'library' && <Suspense fallback={<p className="moduleLoading" role="status">正在打开个人图书馆…</p>}><PersonalLibrary onOpen={openReport} /></Suspense>}
       {initialPage === 'schedule' && (
         <MySchedule
           scheduledReports={scheduledReports}
@@ -976,7 +1049,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
           onClear={clearCustomSchedule}
           onExportNotes={() => setExportRequest({reports:[...scheduledReports],initialMode:'notes',clearFavoritesAfterExport:false})}
           onExportSchedule={() => setExportRequest({reports:[...scheduledReports],initialMode:'schedule',clearFavoritesAfterExport:false})}
-          onShare={openShareMoment}
+          noteIds={noteIds}
         />
       )}
       <footer className="siteFooter">
@@ -991,15 +1064,14 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
         <DetailView
           key={selected.id}
           report={selected}
-          scheduledReports={scheduledReports}
           onLocate={openVenueMap}
           onClose={closeReport}
-          onOpen={openReport}
           favorite={favoriteSet.has(selected.id)}
           onToggleFavorite={toggleFavorite}
           scheduled={scheduleSet.has(selected.id)}
           onToggleSchedule={toggleScheduledReport}
-          onShare={openShareMoment}
+          options={noteOptions}
+          returnLabel={initialPage === 'library' ? '返回图书馆' : initialPage === 'schedule' ? '返回日程' : '返回报告看板'}
         />
       )}
       {mapReport !== undefined && <Suspense fallback={<div className="venueOpening" role="status"><p>正在载入会场地图…</p><button onClick={closeVenueMap}>取消</button></div>}>
@@ -1031,7 +1103,6 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
       />}
       {checkInAtlasOpen && <CheckInAtlas records={Object.values(records)} onClose={() => setCheckInAtlasOpen(false)} />}
       </Suspense>
-      <ShareMoment />
     </main>
   );
 }

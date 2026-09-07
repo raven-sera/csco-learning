@@ -8,7 +8,7 @@ import { PORTAL_ENTER_EVENT, safeReturnPath } from '../lib/entryNavigation';
 
 const sites = [
   { id:'01', kind:'game', title:'癌症知识互动游戏', label:'互动学习', description:'在选择、反馈与挑战中，巩固肿瘤学知识。', features:['互动练习','游戏化学习'] },
-  { id:'02', kind:'learning', title:'CSCO 会议学习台', label:'会议工具', description:'检索会议内容，安排听会日程，记录每一场的收获。', features:['报告检索','私人日程','笔记与分享'] },
+  { id:'02', kind:'learning', title:'CSCO 会议学习台', label:'会议工具', description:'安排听会日程，记录现场收获，在个人图书馆随时回看。', features:['报告检索','私人日程','笔记与图书馆'] },
   { id:'03', kind:'posters', title:'CSCO 会议海报图鉴', label:'学术海报', description:'集中浏览与查找会议海报，让有价值的研究随时可回看。', features:['海报浏览','内容检索'] },
 ] as const;
 

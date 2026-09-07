@@ -3,7 +3,7 @@ import { deferred } from '../lib/deferred';
 import { useDialog } from '../lib/useDialog';
 
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type { Editor } from '@tiptap/core';
 import Image from '@tiptap/extension-image';
@@ -15,6 +15,11 @@ import {
   removeRecordingRecord,
   writeRecordingRecord,
   type StoredRecording,
+  readLibraryMeta,
+  updateLibraryMeta,
+  readSlideRecord,
+  readSlideRecords,
+  type LibraryMeta,
 } from '../lib/noteStorage';
 import { TextStyleKit } from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
@@ -24,7 +29,10 @@ import { createPortal } from 'react-dom';
 import type { Report } from '../lib/reports';
 import ReportSlides from './ReportSlides';
 import { BrandLockup, HuiduQrCallout } from './BrandLockup';
-const renderPdf: typeof import('./ExportCenter').renderPdf = async (...args) => (await import('./ExportCenter')).renderPdf(...args);
+import { renderPdf } from './ExportCenter';
+import { imageToPng } from '../lib/slideImages';
+import { NOTEBOOK_OPEN_EVENT, requestNotebook, type NotebookOpenOptions, type NotebookSection } from '../lib/libraryTypes';
+import './notebook.css';
 
 const MAX_RECORDING_MS = 10 * 60 * 1000;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -44,6 +52,7 @@ type RecordingController = {
   stopRecording: () => void;
   renameRecording: (id: string, title: string) => Promise<void>;
   deleteRecording: (id: string) => Promise<void>;
+  flush: () => Promise<boolean>;
 };
 
 
@@ -113,16 +122,23 @@ async function imageFileToDataUrl(file: File) {
 async function waitForImages(root: HTMLElement) {
   await Promise.all(Array.from(root.querySelectorAll('img')).map(async (image) => {
     if (!image.complete) {
-      const { promise, resolve } = deferred<void>();
-      image.addEventListener('load', () => resolve(), { once: true });
-      image.addEventListener('error', () => resolve(), { once: true });
-      await promise;
+      await new Promise<void>((resolve, reject) => {
+        const finish = (error?: Error) => {
+          window.clearTimeout(timer);
+          image.removeEventListener('load', loaded);
+          image.removeEventListener('error', failed);
+          if (error) reject(error); else resolve();
+        };
+        const loaded = () => finish();
+        const failed = () => finish(new Error('图片无法载入，请修复后重新导出。'));
+        const timer = window.setTimeout(() => finish(new Error('图片载入超时，请重试。')), 20000);
+        image.addEventListener('load', loaded, { once: true });
+        image.addEventListener('error', failed, { once: true });
+        if (image.complete) { if (image.naturalWidth) loaded(); else failed(); }
+      });
     }
-    try {
-      await image.decode();
-    } catch {
-      // html2canvas will surface an unreadable image as a PDF generation error.
-    }
+    if (!image.naturalWidth) throw new Error('图片无法载入，请修复后重新导出。');
+    await image.decode();
   }));
 }
 
@@ -145,6 +161,7 @@ const EDITOR_EXTENSIONS = [
   StarterKit.configure({
     heading: { levels: [1, 2, 3] },
     underline: false,
+    link: { openOnClick: false },
   }),
   TextStyleKit,
   ColoredUnderline,
@@ -154,9 +171,11 @@ const EDITOR_EXTENSIONS = [
   }),
 ];
 
-function NoteToolbar({ editor, onInsertImage }: {
+function NoteToolbar({ editor, onInsertImage, onInsertSlide, canLinkSlide }: {
   editor: Editor;
   onInsertImage: () => void;
+  onInsertSlide: () => void;
+  canLinkSlide: boolean;
 }) {
   const heading = editor.isActive('heading', { level: 1 })
     ? '1'
@@ -234,6 +253,7 @@ function NoteToolbar({ editor, onInsertImage }: {
       </div>
       <div className="noteToolbarButtons noteToolbarUtility">
         <button type="button" onClick={onInsertImage} aria-label="在光标位置插入图片" title="插入图片">图片＋</button>
+        <button type="button" onClick={onInsertSlide} disabled={!canLinkSlide} title="插入当前 PPT 的固定链接，排序或移动后仍可定位">引用当前 PPT</button>
         <button type="button" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} aria-label="清除格式" title="清除格式">清格式</button>
         <button type="button" disabled={!editor.can().chain().focus().undo().run()} onClick={() => editor.chain().focus().undo().run()} aria-label="撤销" title="撤销">↶</button>
         <button type="button" disabled={!editor.can().chain().focus().redo().run()} onClick={() => editor.chain().focus().redo().run()} aria-label="重做" title="重做">↷</button>
@@ -291,10 +311,46 @@ function useRecordings(reportId: number) {
   const rotationTimerRef = useRef<number | null>(null);
   const elapsedTimerRef = useRef<number | null>(null);
   const nextRecordingNumberRef = useRef(1);
+  const pendingWritesRef = useRef(new Set<Promise<unknown>>());
+  const unsavedRef = useRef(new Map<string, StoredRecording>());
+  const readFailedRef = useRef(false);
+
+  async function saveRecording(record: StoredRecording) {
+    unsavedRef.current.set(record.id, record);
+    const operation = writeRecordingRecord(record);
+    pendingWritesRef.current.add(operation);
+    try {
+      await operation;
+      if (unsavedRef.current.get(record.id) === record) unsavedRef.current.delete(record.id);
+    } finally {
+      pendingWritesRef.current.delete(operation);
+    }
+  }
+
+  async function flush() {
+    if (!loaded || recordingRequestedRef.current || recorderRef.current?.state === 'recording') return false;
+    await Promise.allSettled([...pendingWritesRef.current]);
+    try {
+      if (readFailedRef.current) await readRecordingRecords(reportId);
+      readFailedRef.current = false;
+      for (const record of [...unsavedRef.current.values()]) await saveRecording(record);
+      return true;
+    } catch {
+      setError('录音尚未全部保存，未生成 PDF。请先下载未保存的录音并重试。');
+      return false;
+    }
+  }
 
   useEffect(() => {
     mountedRef.current = true;
     let cancelled = false;
+    const warn = (event: BeforeUnloadEvent) => {
+      if (unsavedRef.current.size || pendingWritesRef.current.size || recordingRequestedRef.current) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', warn);
     readRecordingRecords(reportId).then((records) => {
       const loadedItems = records.map((record) => ({ ...record, url: URL.createObjectURL(record.blob) }));
       if (cancelled) {
@@ -307,12 +363,14 @@ function useRecordings(reportId: number) {
       setLoaded(true);
     }).catch(() => {
       if (!cancelled) {
+        readFailedRef.current = true;
         setError('浏览器无法读取已保存的录音；新录音仍可在本次页面中下载。');
         setLoaded(true);
       }
     });
 
     return () => {
+      window.removeEventListener('beforeunload', warn);
       cancelled = true;
       mountedRef.current = false;
       recordingRequestedRef.current = false;
@@ -338,7 +396,7 @@ function useRecordings(reportId: number) {
       createdAt,
     };
     try {
-      await writeRecordingRecord(record);
+      await saveRecording(record);
     } catch {
       if (mountedRef.current) setError('这段录音未能写入浏览器存储，请在关闭页面前下载。');
     }
@@ -391,8 +449,8 @@ function useRecordings(reportId: number) {
       const shouldContinue = recordingRequestedRef.current
         && stream.getAudioTracks().some((track) => track.readyState === 'live');
 
-      if (blob.size > 0) void persistSegment(blob, mimeType, durationMs);
-      else if (mountedRef.current) setError('当前片段没有收到音频数据，未创建空录音。');
+      const segmentSave = blob.size > 0 ? persistSegment(blob, mimeType, durationMs) : Promise.resolve();
+      if (!blob.size && mountedRef.current) setError('当前片段没有收到音频数据，未创建空录音。');
 
       const finishSession = () => {
         stream.getTracks().forEach((track) => track.stop());
@@ -400,8 +458,9 @@ function useRecordings(reportId: number) {
         recorderRef.current = null;
         if (mountedRef.current) {
           setElapsedMs(0);
-          setStatus(blob.size > 0 ? 'saving' : 'idle');
-          queueMicrotask(() => {
+          setStatus('saving');
+          void segmentSave.finally(async () => {
+            await Promise.allSettled([...pendingWritesRef.current]);
             if (mountedRef.current) setStatus('idle');
           });
         }
@@ -501,7 +560,7 @@ function useRecordings(reportId: number) {
     itemsRef.current = nextItems;
     setItems(nextItems);
     try {
-      await writeRecordingRecord(storedRecording(updated));
+      await saveRecording(storedRecording(updated));
     } catch {
       setError('录音标题未能写入浏览器存储。');
     }
@@ -511,7 +570,11 @@ function useRecordings(reportId: number) {
     const item = itemsRef.current.find((candidate) => candidate.id === id);
     if (!item || !window.confirm(`删除“${item.title}”？此操作无法撤销。`)) return;
     try {
-      await removeRecordingRecord(id);
+      await Promise.allSettled([...pendingWritesRef.current]);
+      const operation = removeRecordingRecord(id);
+      pendingWritesRef.current.add(operation);
+      try { await operation; } finally { pendingWritesRef.current.delete(operation); }
+      unsavedRef.current.delete(id);
       URL.revokeObjectURL(item.url);
       const nextItems = itemsRef.current.filter((candidate) => candidate.id !== id);
       itemsRef.current = nextItems;
@@ -531,6 +594,7 @@ function useRecordings(reportId: number) {
     stopRecording,
     renameRecording,
     deleteRecording,
+    flush,
   };
 }
 
@@ -595,12 +659,16 @@ function RecordingPanel({ recordings }: {
   );
 }
 
-function SingleNoteDocument({ report, html, textLength, recordings }: {
-  report: Report;
+type ExportPhoto = { id: string; name: string; src: string; annotation: string; important: boolean; mode: 'original' | 'processed'; createdAt: number };
+type NoteExportSnapshot = {
   html: string;
   textLength: number;
-  recordings: RecordingItem[];
-}) {
+  recordings: StoredRecording[];
+  photos: ExportPhoto[];
+  meta: LibraryMeta;
+};
+
+function SingleNoteDocument({ report, html, textLength, recordings, photos, meta }: NoteExportSnapshot & { report: Report }) {
   return (
     <div className="pdfDocument singleNoteDocument singleNotePagedDocument">
       <header className="singleNotePageChromeHeader" data-pdf-page-header>
@@ -614,27 +682,50 @@ function SingleNoteDocument({ report, html, textLength, recordings }: {
         <header className="singleNoteHeader" data-pdf-keep>
           <div><span>CSCO 2026 · REPORT NOTE</span><h1>单场听会笔记</h1></div>
         </header>
-        <section className="singleNoteReport" data-pdf-keep>
-          <small>{report.field} · {report.directions.slice(0, 2).join(' / ')}</small>
+        <section className="singleNoteReport notebookPdfMetadata">
+          <small>{report.field} · {report.directions.join(' / ')}</small>
           <h2>{report.sourceTitle}</h2>
           <div>
             <span><i>时间</i>{report.dateTime}</span>
             <span><i>报告人</i>{report.speaker}</span>
             <span><i>单位</i>{report.institution}</span>
+            <span><i>地点</i>{report.location || '未公布'}</span>
+            <span><i>报告编号 / 摘要编号</i>{report.id} / {report.abstractNo || '无'}</span>
+            <span><i>日程类别 / 类型</i>{report.scheduleCategory} / {report.kind}</span>
+            <span><i>专场</i>{report.program}</span>
+            <span><i>Session</i>{report.session || '无'}</span>
+            <span><i>个人标签</i>{meta.tags.join('、') || '无'}</span>
+            <span className="notebookPdfOfficial"><i>官方日程</i>{report.officialUrl || '未提供'}</span>
           </div>
         </section>
         <section className="singleNoteBody singleNoteRichBody">
-          <header data-pdf-keep><span>MY NOTES</span><b>{textLength} 字 · {recordings.length} 条录音</b></header>
+          <header data-pdf-keep><span>MY NOTES</span><b>{textLength} 字 · {photos.length} 张 PPT · {recordings.length} 条录音</b></header>
           <div className="noteRichContent singleNoteRichText" dangerouslySetInnerHTML={{ __html: html || '<p></p>' }} />
         </section>
+        {photos.length > 0 && (
+          <section className="notebookPdfSlides">
+            <h2 data-pdf-keep>PPT 照片 · 当前顺序</h2>
+            {photos.map((photo, index) => (
+              <article key={photo.id}>
+                <figure data-pdf-keep>
+                  <figcaption><b>{index + 1}. {photo.name}</b>{photo.important && <strong>重要</strong>}<span>{photo.mode === 'processed' ? '扫描版' : '原图'} · {new Date(photo.createdAt).toLocaleString('zh-CN')}</span></figcaption>
+                  <img src={photo.src} alt={`第 ${index + 1} 张 PPT：${photo.name}`} />
+                </figure>
+                <p className="notebookPdfPhotoId">固定引用 ID：{photo.id}</p>
+                {photo.annotation && <div className="notebookPdfAnnotation"><b>批注</b><p>{photo.annotation}</p></div>}
+              </article>
+            ))}
+          </section>
+        )}
         {recordings.length > 0 && (
           <section className="pdfRecordingList">
             <header data-pdf-keep><span>AUDIO NOTES</span><b>{recordings.length} 条</b></header>
+            <p className="notebookPdfAudioNotice">此 PDF 仅列出录音信息，不能播放音频。音频文件随“资料库完整备份”保存；请同时下载完整备份，以便恢复、播放或迁移。</p>
             {recordings.map((recording, index) => (
               <div key={recording.id} data-pdf-keep>
                 <b>{String(index + 1).padStart(2, '0')}</b>
                 <span>{recording.title}</span>
-                <small>{formatDuration(recording.durationMs)} · {new Date(recording.createdAt).toLocaleString('zh-CN')} · 音频请在网页笔记中播放</small>
+                <small>{formatDuration(recording.durationMs)} · {new Date(recording.createdAt).toLocaleString('zh-CN')} · {recording.mimeType}</small>
               </div>
             ))}
           </section>
@@ -649,17 +740,15 @@ function SingleNoteDocument({ report, html, textLength, recordings }: {
   );
 }
 
-function SingleNoteExport({ report, html, textLength, recordings, onClose }: {
+function SingleNoteExport({ report, html, textLength, recordings, photos, meta, onClose }: NoteExportSnapshot & {
   report: Report;
-  html: string;
-  textLength: number;
-  recordings: RecordingItem[];
   onClose: () => void;
 }) {
   const [stage, setStage] = useState<'generating' | 'preview' | 'error'>('generating');
   const [pdfUrl, setPdfUrl] = useState('');
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [portalReady, setPortalReady] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   useDialog('.singleNoteExportOverlay', onClose, portalReady);
   const sourceRef = useRef<HTMLDivElement>(null);
   const filename = `CSCO2026-${safeFilename(report.speaker)}-听会笔记.pdf`;
@@ -704,7 +793,10 @@ function SingleNoteExport({ report, html, textLength, recordings, onClose }: {
         setStage('preview');
       } catch (error) {
         console.error(error);
-        if (!cancelled) setStage('error');
+        if (!cancelled) {
+          setErrorMessage(error instanceof Error ? error.message : 'PDF 生成失败。');
+          setStage('error');
+        }
       } finally {
         source.classList.remove('isCapturing');
       }
@@ -732,13 +824,13 @@ function SingleNoteExport({ report, html, textLength, recordings, onClose }: {
           <div className="exportGenerating">
             <span className="generatingOrb">PDF</span>
             <h3>正在排版并自动分页</h3>
-            <p>文字、格式和插图将按 A4 页面长度继续扩展。</p>
+            <p>报告信息、富文本、按当前顺序排列的 PPT 与批注、录音清单将自动分页。</p>
           </div>
         )}
         {stage === 'error' && (
           <div className="exportError">
             <b>生成没有完成</b>
-            <p>笔记仍已保存在浏览器中，可以关闭后重新尝试。</p>
+            <p>{errorMessage} 笔记已保存在浏览器中，可以关闭后重新尝试。</p>
             <button onClick={onClose}>关闭</button>
           </div>
         )}
@@ -769,7 +861,7 @@ function SingleNoteExport({ report, html, textLength, recordings, onClose }: {
       <>
         {dialog}
         <div className="pdfSource" aria-hidden="true" ref={sourceRef}>
-          <SingleNoteDocument report={report} html={html} textLength={textLength} recordings={recordings} />
+          <SingleNoteDocument report={report} html={html} textLength={textLength} recordings={recordings} photos={photos} meta={meta} />
         </div>
       </>,
       document.body,
@@ -777,37 +869,62 @@ function SingleNoteExport({ report, html, textLength, recordings, onClose }: {
     : null;
 }
 
-export default function ReportNotes({ report }: { report: Report }) {
+export default function ReportNotes({ report, initialSection, initialMode = 'read', autoCapture = false, initialSlideId }: {
+  report: Report;
+  initialSection?: NotebookSection;
+  initialMode?: 'read' | 'edit';
+  autoCapture?: boolean;
+  initialSlideId?: string;
+}) {
+  const [section, setSection] = useState<NotebookSection>(autoCapture || initialSlideId ? 'slides' : initialSection ?? 'text');
+  const [mode, setMode] = useState(initialMode);
+  const intent = `${initialMode}|${initialSection || ''}|${autoCapture}|${initialSlideId || ''}`;
+  const [previousIntent, setPreviousIntent] = useState(intent);
+  if (intent !== previousIntent) {
+    setPreviousIntent(intent);
+    setMode(initialMode);
+    if (autoCapture || initialSlideId || initialSection) setSection(autoCapture || initialSlideId ? 'slides' : initialSection!);
+  }
+  const [desktop, setDesktop] = useState(false);
   const [textLength, setTextLength] = useState(0);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('loading');
   const [savedAt, setSavedAt] = useState(0);
   const [manualSaveStatus, setManualSaveStatus] = useState<ManualSaveStatus>('idle');
-  const [imageError, setImageError] = useState('');
-  const [exportSnapshot, setExportSnapshot] = useState<{
-    html: string;
-    textLength: number;
-    recordings: RecordingItem[];
-  } | null>(null);
+  const [message, setMessage] = useState('');
+  const [tags, setTags] = useState('');
+  const [tagStatus, setTagStatus] = useState<SaveStatus>('loading');
+  const [metaLoaded, setMetaLoaded] = useState(false);
+  const [slideCount, setSlideCount] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState<{ id: string; index: number } | null>(null);
+  const [exportSnapshot, setExportSnapshot] = useState<NoteExportSnapshot | null>(null);
+  const [exportProgress, setExportProgress] = useState('');
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const textPaneRef = useRef<HTMLDivElement>(null);
+  const audioPaneRef = useRef<HTMLDivElement>(null);
   const latestHtmlRef = useRef('<p></p>');
+  const initialViewRef = useRef({ section: initialSection, capture: autoCapture, slideId: initialSlideId });
   const dirtyRef = useRef(false);
   const loadedRef = useRef(false);
+  const tagsRef = useRef('');
+  const tagsDirtyRef = useRef(false);
+  const textOffsetRef = useRef(0);
+  const restoreTextRef = useRef(false);
+  const explicitSectionRef = useRef(Boolean(initialSection || initialSlideId || autoCapture));
   const saveTimerRef = useRef<number | null>(null);
-  const manualSaveFeedbackTimerRef = useRef<number | null>(null);
-  const manualSaveRequestRef = useRef(0);
+  const readingTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(false);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   const recordings = useRecordings(report.id);
+  const slidesVisible = section === 'slides' || (desktop && section === 'text');
+  const textVisible = section === 'text' || (desktop && section === 'slides');
+  const exporting = Boolean(exportProgress || exportSnapshot);
+  const noteReady = loadedRef.current && saveStatus !== 'loading';
 
-  function clearManualSaveFeedback() {
-    if (manualSaveFeedbackTimerRef.current !== null) {
-      window.clearTimeout(manualSaveFeedbackTimerRef.current);
-      manualSaveFeedbackTimerRef.current = null;
-    }
-  }
-
-  async function persistHtml(nextHtml: string) {
+  const persistHtml = useCallback(async (nextHtml: string) => {
     if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = null;
+    if (!loadedRef.current) return false;
     try {
       const updatedAt = await persistStoredNote(report.id, nextHtml);
       if (latestHtmlRef.current === nextHtml) dirtyRef.current = false;
@@ -820,19 +937,27 @@ export default function ReportNotes({ report }: { report: Report }) {
       if (mountedRef.current) setSaveStatus('error');
       return false;
     }
-  }
+  }, [report.id]);
 
-  function scheduleSave(nextHtml: string) {
-    manualSaveRequestRef.current += 1;
-    clearManualSaveFeedback();
-    setManualSaveStatus('idle');
-    latestHtmlRef.current = nextHtml;
-    dirtyRef.current = true;
-    setSaveStatus('pending');
-    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = window.setTimeout(() => {
-      void persistHtml(latestHtmlRef.current);
-    }, 800);
+  async function saveTags() {
+    if (!metaLoaded) return false;
+    if (!tagsDirtyRef.current) return true;
+    const draft = tagsRef.current;
+    const values = [...new Set(draft.split(/[,，;；\n]/).map((tag) => tag.trim()).filter(Boolean))];
+    setTagStatus('pending');
+    try {
+      await updateLibraryMeta(report.id, { tags: values });
+      if (tagsRef.current === draft) {
+        tagsDirtyRef.current = false;
+        setTags(values.join('，'));
+        tagsRef.current = values.join('，');
+        setTagStatus('saved');
+      }
+      return true;
+    } catch {
+      setTagStatus('error');
+      return false;
+    }
   }
 
   const editor = useEditor({
@@ -850,171 +975,340 @@ export default function ReportNotes({ report }: { report: Report }) {
       },
     },
     onUpdate: ({ editor: activeEditor }) => {
-      const nextHtml = activeEditor.getHTML();
+      latestHtmlRef.current = activeEditor.getHTML();
+      dirtyRef.current = true;
       setTextLength(activeEditor.getText().length);
-      scheduleSave(nextHtml);
+      setSaveStatus('pending');
+      setManualSaveStatus('idle');
+      if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = window.setTimeout(() => void persistHtml(latestHtmlRef.current), 800);
     },
+  }, [report.id]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1000px)');
+    const update = () => setDesktop(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    if (autoCapture || initialSlideId || initialSection) {
+      explicitSectionRef.current = true;
+    }
+  }, [initialMode, initialSection, initialSlideId, autoCapture]);
+
+
+  const applyNavigation = useEffectEvent((options: NotebookOpenOptions) => {
+    if (options.mode) setMode(options.mode);
+    if (options.section || options.slideId || options.capture) selectSection(options.slideId || options.capture ? 'slides' : options.section!);
+  });
+  const flushChanges = useEffectEvent(async () => {
+    if (dirtyRef.current && !(await persistHtml(latestHtmlRef.current))) throw new Error('文本笔记保存失败，请重试后再离开。');
+    if (tagsDirtyRef.current && !(await saveTags())) throw new Error('报告标签保存失败，请重试后再离开。');
+    if (recordings.loaded && !(await recordings.flush())) throw new Error('录音尚未全部保存，请先停止录音并保存。');
+  });
+
+  useEffect(() => {
+    const open = (event: Event) => {
+      const detail = (event as CustomEvent<{ reportId: number; options: NotebookOpenOptions }>).detail;
+      if (detail?.reportId !== report.id) return;
+      applyNavigation(detail.options);
+    };
+    window.addEventListener(NOTEBOOK_OPEN_EVENT, open);
+    return () => window.removeEventListener(NOTEBOOK_OPEN_EVENT, open);
+  }, [report.id]);
+
+  useEffect(() => {
+    const flush = (event: Event) => {
+      const detail = (event as CustomEvent<{ promises: Promise<unknown>[] }>).detail;
+      if (!Array.isArray(detail?.promises)) return;
+      detail.promises.push(flushChanges());
+    };
+    window.addEventListener('csco:flush-notebook', flush);
+    return () => window.removeEventListener('csco:flush-notebook', flush);
+  }, [report.id]);
+  useEffect(() => {
+    let cancelled = false;
+    void readLibraryMeta(report.id).then((meta) => {
+      if (cancelled) return;
+      tagsRef.current = meta.tags.join('，');
+      setTags(tagsRef.current);
+      setTagStatus('saved');
+      textOffsetRef.current = meta.reading?.textOffset ?? 0;
+      restoreTextRef.current = true;
+      if (!explicitSectionRef.current) setSection(meta.reading?.section ?? 'text');
+      setMetaLoaded(true);
+      void updateLibraryMeta(report.id, {
+        lastOpenedAt: Date.now(),
+        reading: { section: initialViewRef.current.capture || initialViewRef.current.slideId ? 'slides' : initialViewRef.current.section ?? meta.reading?.section ?? 'text', updatedAt: Date.now() },
+      }).catch(() => { if (!cancelled) setMessage('上次打开时间未能保存，笔记内容不受影响。'); });
+    }).catch(() => {
+      if (!cancelled) {
+        setTagStatus('error');
+        setMessage('标签与阅读位置载入失败，请重新打开笔记后再编辑标签。');
+      }
+    });
+    return () => { cancelled = true; };
   }, [report.id]);
 
   useEffect(() => {
     mountedRef.current = true;
     const flush = () => {
-      if (!loadedRef.current || !dirtyRef.current) return;
-      try { stageStoredNote(report.id, latestHtmlRef.current); } catch { /* Async persistence will still be attempted. */ }
-      void persistStoredNote(report.id, latestHtmlRef.current).catch(() => window.dispatchEvent(new Event('csco:storage-warning')));
+      if (loadedRef.current && dirtyRef.current) {
+        try { stageStoredNote(report.id, latestHtmlRef.current); } catch { /* IDB is still attempted below. */ }
+        void persistStoredNote(report.id, latestHtmlRef.current).catch(() => window.dispatchEvent(new Event('csco:storage-warning')));
+      }
+      if (tagsDirtyRef.current) {
+        const values = [...new Set(tagsRef.current.split(/[,，;；\n]/).map((tag) => tag.trim()).filter(Boolean))];
+        void updateLibraryMeta(report.id, { tags: values }).catch(() => window.dispatchEvent(new Event('csco:storage-warning')));
+      }
+      if (readingTimerRef.current !== null) {
+        window.clearTimeout(readingTimerRef.current);
+        readingTimerRef.current = null;
+        void updateLibraryMeta(report.id, { reading: { textOffset: textOffsetRef.current, updatedAt: Date.now() } }).catch(() => window.dispatchEvent(new Event('csco:storage-warning')));
+      }
     };
     const visibility = () => { if (document.visibilityState === 'hidden') flush(); };
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (dirtyRef.current || tagsDirtyRef.current) { event.preventDefault(); event.returnValue = ''; }
+    };
     window.addEventListener('pagehide', flush);
+    window.addEventListener('beforeunload', beforeUnload);
     document.addEventListener('visibilitychange', visibility);
     return () => {
       window.removeEventListener('pagehide', flush);
+      window.removeEventListener('beforeunload', beforeUnload);
       document.removeEventListener('visibilitychange', visibility);
       mountedRef.current = false;
       if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
-      manualSaveRequestRef.current += 1;
-      clearManualSaveFeedback();
-      if (loadedRef.current && dirtyRef.current) {
-        try { stageStoredNote(report.id, latestHtmlRef.current); } catch { /* IDB may still be available. */ }
-        void persistStoredNote(report.id, latestHtmlRef.current).catch(() => window.dispatchEvent(new Event('csco:storage-warning')));
-      }
+      flush();
     };
   }, [report.id]);
 
   useEffect(() => {
+    const active = recordings.status !== 'idle';
+    window.dispatchEvent(new CustomEvent('csco:recording-state', { detail: { reportId: report.id, active } }));
+    const warn = (event: BeforeUnloadEvent) => {
+      if (active) { event.preventDefault(); event.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => {
+      window.removeEventListener('beforeunload', warn);
+      window.dispatchEvent(new CustomEvent('csco:recording-state', { detail: { reportId: report.id, active: false } }));
+    };
+  }, [recordings.status, report.id]);
+
+  useEffect(() => {
     if (!editor) return;
     let cancelled = false;
-    loadStoredNote(report.id).then((record) => {
+    loadedRef.current = false;
+    void loadStoredNote(report.id).then((record) => {
       if (cancelled) return;
       editor.commands.setContent(record.html, { emitUpdate: false });
-      editor.setEditable(true);
-      const normalizedHtml = editor.getHTML();
-      latestHtmlRef.current = normalizedHtml;
+      editor.setEditable(modeRef.current === 'edit', false);
+      latestHtmlRef.current = editor.getHTML();
       loadedRef.current = true;
       setTextLength(editor.getText().length);
       setSavedAt(record.updatedAt);
       setSaveStatus('saved');
       if (record.migrated) {
-        void persistStoredNote(report.id, normalizedHtml).then((updatedAt) => {
-          if (!cancelled && mountedRef.current) setSavedAt(updatedAt);
-        }).catch(() => { if (!cancelled) setSaveStatus('error'); });
+        dirtyRef.current = true;
+        void persistHtml(latestHtmlRef.current);
       }
     }).catch(() => {
-      if (cancelled) return;
-      editor.setEditable(false);
-      setSaveStatus('error');
+      if (!cancelled) {
+        editor.setEditable(false, false);
+        setSaveStatus('error');
+        setMessage('文本读取失败，为保护已有笔记，编辑与导出已禁用。请重新打开后重试。');
+      }
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [editor, report.id]);
+    return () => { cancelled = true; };
+  }, [editor, report.id, persistHtml]);
+
+  useEffect(() => {
+    editor?.setEditable(loadedRef.current && mode === 'edit' && !exporting, false);
+  }, [editor, mode, saveStatus, exporting]);
+
+  useEffect(() => {
+    if (!metaLoaded || !textVisible || !noteReady || !textPaneRef.current || !restoreTextRef.current) return;
+    let cancelled = false;
+    const pane = textPaneRef.current;
+    void waitForImages(pane).catch(() => {}).then(() => {
+      if (cancelled) return;
+      pane.scrollTop = textOffsetRef.current;
+      restoreTextRef.current = false;
+    });
+    return () => { cancelled = true; };
+  }, [metaLoaded, textVisible, noteReady]);
+
+  useEffect(() => {
+    if (noteReady && mode === 'edit' && section === 'text') editor?.commands.focus(undefined, { scrollIntoView: false });
+  }, [mode, section, editor, noteReady]);
+
+  useEffect(() => {
+    if (section === 'audio' && mode === 'edit') audioPaneRef.current?.querySelector<HTMLButtonElement>('.recordButton')?.focus({ preventScroll: true });
+  }, [section, mode]);
+
+  useEffect(() => () => {
+    exportSnapshot?.photos.forEach((photo) => URL.revokeObjectURL(photo.src));
+  }, [exportSnapshot]);
+
+  function selectSection(next: NotebookSection) {
+    explicitSectionRef.current = true;
+    if (readingTimerRef.current !== null) {
+      window.clearTimeout(readingTimerRef.current);
+      readingTimerRef.current = null;
+    }
+    setSection(next);
+    if (metaLoaded) {
+      void updateLibraryMeta(report.id, { reading: { section: next, textOffset: textOffsetRef.current, updatedAt: Date.now() } }).catch(() => setMessage('阅读位置保存失败，内容未受影响。'));
+    }
+  }
 
   async function insertImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file || !editor) return;
-    setImageError('');
+    setMessage('');
     try {
       const dataUrl = await imageFileToDataUrl(file);
+      if (!mountedRef.current || editor.isDestroyed) return;
       editor.chain().focus().setImage({ src: dataUrl, alt: file.name, title: file.name }).run();
     } catch (caught) {
-      setImageError(caught instanceof Error ? caught.message : '图片插入失败。');
+      setMessage(caught instanceof Error ? caught.message : '图片插入失败。');
+    }
+  }
+
+  async function followSlide(id: string) {
+    setMessage('');
+    try {
+      const slide = await readSlideRecord(id);
+      if (!slide) { setMessage('这张 PPT 已被删除，固定链接已失效。文字引用仍保留，可在编辑模式删除或改写。'); return; }
+      if (dirtyRef.current && !(await persistHtml(latestHtmlRef.current))) { setMessage('笔记保存失败，未离开当前页面。请先重试保存。'); return; }
+      if (slide.reportId !== report.id && recordings.status !== 'idle') { setMessage('请先停止录音并等待保存，再打开已移动到另一场报告的 PPT。'); return; }
+      requestNotebook(slide.reportId, { section: 'slides', slideId: slide.id, mode: 'read' });
+    } catch {
+      setMessage('无法读取 PPT 引用，请检查本机存储后重试。');
     }
   }
 
   async function saveNow() {
-    if (!editor || manualSaveStatus === 'saving') return;
-    const request = ++manualSaveRequestRef.current;
-    clearManualSaveFeedback();
+    if (!editor || !loadedRef.current || manualSaveStatus === 'saving') return;
     setManualSaveStatus('saving');
     const saved = await persistHtml(editor.getHTML());
-    if (!mountedRef.current || request !== manualSaveRequestRef.current) return;
-    setManualSaveStatus(saved ? 'saved' : 'error');
-    if (saved) {
-      manualSaveFeedbackTimerRef.current = window.setTimeout(() => {
-        if (request === manualSaveRequestRef.current) setManualSaveStatus('idle');
-        manualSaveFeedbackTimerRef.current = null;
-      }, 2200);
-    }
+    const tagsSaved = await saveTags();
+    if (mountedRef.current) setManualSaveStatus(saved && tagsSaved ? 'saved' : 'error');
   }
 
   async function openExport() {
-    if (!editor) return;
-    const currentHtml = editor.getHTML();
-    await persistHtml(currentHtml);
-    setExportSnapshot({
-      html: currentHtml,
-      textLength: editor.getText().length,
-      recordings: [...recordings.items],
-    });
+    if (!editor || !loadedRef.current || exporting) return;
+    if (recordings.status !== 'idle') { setMessage('请先停止录音并等待保存完成，再导出完整笔记。切换标签页不会停止录音。'); return; }
+    setMessage('');
+    setExportProgress('正在保存完整笔记…');
+    editor.setEditable(false, false);
+    const html = editor.getHTML();
+    const length = editor.getText().length;
+    const photos: ExportPhoto[] = [];
+    try {
+      if (!(await persistHtml(html)) || !(await saveTags()) || !(await recordings.flush())) throw new Error('存在未保存的内容，已停止导出。请先重试保存。');
+      const promises: Promise<void>[] = [];
+      window.dispatchEvent(new CustomEvent('csco:flush-notebook', { detail: { promises } }));
+      await Promise.all(promises);
+      const [slides, audio, meta] = await Promise.all([readSlideRecords(report.id), readRecordingRecords(report.id), readLibraryMeta(report.id)]);
+      for (const [index, slide] of slides.entries()) {
+        if (!mountedRef.current) return;
+        setExportProgress(`正在准备 PPT ${index + 1} / ${slides.length}…`);
+        const selected = slide.mode === 'processed' ? slide.processed : slide.original;
+        if (!(selected instanceof Blob) || !selected.size) throw new Error(`“${slide.name}”的${slide.mode === 'processed' ? '扫描版' : '原图'}不可用，请重新选择图片版本。`);
+        const image = await imageToPng(selected);
+        photos.push({ id: slide.id, name: slide.name, src: URL.createObjectURL(image), annotation: slide.annotation ?? '', important: Boolean(slide.important), mode: slide.mode, createdAt: slide.createdAt });
+      }
+      if (!mountedRef.current) return;
+      setExportSnapshot({ html, textLength: length, recordings: audio, photos, meta });
+    } catch (caught) {
+      photos.forEach((photo) => URL.revokeObjectURL(photo.src));
+      if (mountedRef.current) setMessage(caught instanceof Error ? caught.message : '完整笔记导出失败，请重试。');
+    } finally {
+      if (mountedRef.current) setExportProgress('');
+      else photos.forEach((photo) => URL.revokeObjectURL(photo.src));
+    }
   }
 
-  const saveLabel = saveStatus === 'loading'
-    ? '正在载入笔记…'
-    : saveStatus === 'pending'
-      ? '正在自动保存…'
-      : saveStatus === 'error'
-        ? '保存失败，请重试'
-        : savedAt
-          ? `已保存于 ${new Date(savedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`
-          : '内容将自动保存在本机';
-  const manualSaveLabel = manualSaveStatus === 'saving'
-    ? '保存中…'
-    : manualSaveStatus === 'saved'
-      ? '保存成功'
-      : manualSaveStatus === 'error'
-        ? '保存失败 · 重试'
-        : '立即保存';
+  const saveLabel = saveStatus === 'loading' ? '正在载入…' : saveStatus === 'pending' ? '正在自动保存…' : saveStatus === 'error' ? '保存失败，请重试' : savedAt ? `已保存于 ${new Date(savedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}` : '内容自动保存在本机';
 
   return (
-    <section className="learningSection noteEditorSection">
-      <div className="noteEditorHeading">
-        <div>
-          <span className="sectionKicker desktopRecordingCopy">听会记录 · PPT 照片 · 录音与文本</span>
-          <span className="sectionKicker mobileTextNoteCopy">听会记录 · 随拍随存 · 按报告归档</span>
-          <h3>笔记区</h3>
-          <p className="desktopRecordingCopy">把 PPT 照片、现场录音和文本结论留在同一场报告下，回看时不再翻找相册。</p>
-          <p className="mobileTextNoteCopy">先拍下本场 PPT，再补充文字心得；照片自动归入当前报告，可整理成册导出。</p>
+    <section className="learningSection noteEditorSection notebook" data-section={section} data-mode={mode}>
+      <header className="notebookHeader">
+        <div><span className="sectionKicker">个人笔记 · 本机保存</span><h3>本场笔记</h3></div>
+        <button type="button" onClick={() => void openExport()} disabled={!loadedRef.current || exporting}>完整笔记 PDF</button>
+      </header>
+      <div className="notebookTabs" role="tablist" aria-label="笔记内容">
+        {([{ key: 'slides', title: 'PPT', count: slideCount }, { key: 'text', title: '文本', count: `${textLength} 字` }, { key: 'audio', title: '录音', count: recordings.items.length }] as const).map((tab) => (
+          <button key={tab.key} type="button" role="tab" id={`notebook-tab-${tab.key}`} aria-controls={`notebook-panel-${tab.key}`} aria-selected={section === tab.key} onClick={() => selectSection(tab.key)}>{tab.title}<small>{tab.count}</small>{tab.key === 'audio' && recordings.status !== 'idle' && <i aria-label="录音进行中" />}</button>
+        ))}
+      </div>
+      {recordings.status !== 'idle' && (
+        <div className="notebookRecordingBanner" role="status">
+          <span>{recordings.status === 'recording' ? `正在录音 ${formatDuration(recordings.elapsedMs)} · 切换标签不停止录音` : recordings.status === 'saving' ? '录音保存中，请勿关闭页面' : '等待麦克风授权'}</span>
+          {recordings.status === 'recording' && <button type="button" onClick={recordings.stopRecording}>停止并保存</button>}
         </div>
-      </div>
-      <ReportSlides key={report.id} report={report} />
-      <RecordingPanel recordings={recordings} />
-      <div className="textNoteHeading">
-        <div><span className="sectionKicker">富文本 · 自动保存</span><h4>文本笔记</h4></div>
-        <button type="button" onClick={() => void openExport()} disabled={!editor || saveStatus === 'loading'}>导出笔记 PDF ↗</button>
-      </div>
-      {editor && <NoteToolbar editor={editor} onInsertImage={() => imageInputRef.current?.click()} />}
-      <input ref={imageInputRef} className="noteImageInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void insertImage(event)} />
-      <div className="noteRichEditor" data-empty={textLength === 0} data-loading={saveStatus === 'loading'}>
-        <EditorContent editor={editor} />
-      </div>
-      {imageError && <p className="noteEditorError" role="alert">{imageError}</p>}
-      <div className="noteEditorFooter">
-        <span role="status" aria-live="polite" data-status={manualSaveStatus === 'idle' ? saveStatus : manualSaveStatus}>{textLength} 字 · {saveLabel}</span>
-        <button
-          type="button"
-          className="noteSaveButton"
-          data-status={manualSaveStatus}
-          aria-live="polite"
-          onClick={() => void saveNow()}
-          disabled={!editor || saveStatus === 'loading' || manualSaveStatus === 'saving'}
-        >
-          {manualSaveLabel}
-        </button>
-      </div>
-      <div className="noteStorageNotice" role="note">
-        <b>仅保存在本机</b>
-        <p className="desktopRecordingCopy">笔记、PPT 照片和录音只保存在当前浏览器，不会上传到服务器。清除站点数据或更换设备后不会自动同步，请及时导出重要内容。</p>
-        <p className="mobileTextNoteCopy">笔记和 PPT 照片只保存在当前浏览器，不会上传到服务器。清除站点数据或更换设备后不会自动同步，请及时导出；仅在会议允许时拍摄与使用。</p>
-      </div>
-      {exportSnapshot && (
-        <SingleNoteExport
-          report={report}
-          html={exportSnapshot.html}
-          textLength={exportSnapshot.textLength}
-          recordings={exportSnapshot.recordings}
-          onClose={() => setExportSnapshot(null)}
-        />
       )}
+      {message && <p className="noteEditorError" role="alert">{message}</p>}
+      {recordings.error && section !== 'audio' && <p className="noteEditorError" role="alert">{recordings.error} <button type="button" onClick={() => selectSection('audio')}>查看录音</button></p>}
+      {exportProgress && <p className="notebookProgress" role="status">{exportProgress}</p>}
+      <fieldset className="notebookWorkspace" disabled={exporting} aria-busy={exporting}>
+        <div className="notebookSlidePane" id="notebook-panel-slides" role="tabpanel" aria-labelledby="notebook-tab-slides" hidden={!slidesVisible}>
+          <ReportSlides key={report.id} report={report} initialCapture={autoCapture} initialSlideId={initialSlideId} active={metaLoaded && slidesVisible && !exporting} onCountChange={setSlideCount} onActiveSlideChange={setCurrentSlide} />
+        </div>
+        <div className="notebookTextPane" id="notebook-panel-text" role="tabpanel" aria-labelledby="notebook-tab-text" hidden={!textVisible}>
+          <div className="notebookTextHeading">
+            <h4>文本笔记 <small>{mode === 'read' ? '阅读模式' : '编辑模式'}</small></h4>
+            <button type="button" disabled={!loadedRef.current} onClick={() => {
+              if (mode === 'read') { setMode('edit'); selectSection('text'); }
+              else void persistHtml(latestHtmlRef.current).then((saved) => { if (saved) setMode('read'); });
+            }}>{mode === 'read' ? '编辑文本' : '完成编辑'}</button>
+          </div>
+          {editor && mode === 'edit' && <NoteToolbar editor={editor} onInsertImage={() => imageInputRef.current?.click()} canLinkSlide={Boolean(currentSlide)} onInsertSlide={() => {
+            if (!currentSlide) return;
+            editor.chain().focus().insertContent([{ type: 'text', text: `PPT 引用（第 ${currentSlide.index + 1} 张）`, marks: [{ type: 'link', attrs: { href: `#csco-slide=${encodeURIComponent(currentSlide.id)}`, target: null } }] }, { type: 'text', text: ' ' }]).run();
+          }} />}
+          <input ref={imageInputRef} className="noteImageInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void insertImage(event)} />
+          <div ref={textPaneRef} className="noteRichEditor notebookTextScroll" data-empty={textLength === 0} data-loading={saveStatus === 'loading'} onScroll={(event) => {
+            if (!metaLoaded || !textVisible || restoreTextRef.current) return;
+            textOffsetRef.current = event.currentTarget.scrollTop;
+            if (readingTimerRef.current !== null) window.clearTimeout(readingTimerRef.current);
+            readingTimerRef.current = window.setTimeout(() => {
+              readingTimerRef.current = null;
+              void updateLibraryMeta(report.id, { reading: { section: 'text', textOffset: textOffsetRef.current, updatedAt: Date.now() } }).catch(() => setMessage('文本阅读位置保存失败，笔记内容未受影响。'));
+            }, 350);
+          }} onClick={(event) => {
+            const target = event.target instanceof Element ? event.target.closest('a') : null;
+            const href = target?.getAttribute('href');
+            if (!href?.startsWith('#csco-slide=')) return;
+            event.preventDefault();
+            try { void followSlide(decodeURIComponent(href.slice('#csco-slide='.length))); } catch { setMessage('PPT 引用格式无效，请在编辑模式重新插入。'); }
+          }}>
+            <EditorContent editor={editor} />
+          </div>
+          <footer className="noteEditorFooter">
+            <span role="status" data-status={saveStatus}>{textLength} 字 · {saveLabel}</span>
+            <button type="button" className="noteSaveButton" disabled={!loadedRef.current || manualSaveStatus === 'saving'} onClick={() => void saveNow()}>{manualSaveStatus === 'saving' ? '保存中…' : manualSaveStatus === 'saved' ? '保存成功' : manualSaveStatus === 'error' ? '保存失败 · 重试' : '立即保存'}</button>
+          </footer>
+        </div>
+        <div ref={audioPaneRef} className="notebookAudioPane" id="notebook-panel-audio" role="tabpanel" aria-labelledby="notebook-tab-audio" hidden={section !== 'audio'}>
+          <RecordingPanel recordings={recordings} />
+        </div>
+      </fieldset>
+      <div className="notebookTags">
+        <label htmlFor={`notebook-tags-${report.id}`}>报告标签</label>
+        <input id={`notebook-tags-${report.id}`} value={tags} disabled={!metaLoaded || exporting} placeholder="多个标签用逗号分隔" onChange={(event) => { setTags(event.target.value); tagsRef.current = event.target.value; tagsDirtyRef.current = true; setTagStatus('pending'); }} onBlur={() => void saveTags()} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }} />
+        <button type="button" disabled={!metaLoaded || exporting} onClick={() => void saveTags()}>{tagStatus === 'error' ? '重试保存标签' : '保存标签'}</button>
+        <span role="status">{tagStatus === 'error' ? '标签保存失败' : tagStatus === 'pending' ? '标签待保存' : tagStatus === 'loading' ? '载入标签…' : '标签已保存'}</span>
+      </div>
+      <p className="notebookLocalNotice">仅保存在当前浏览器，不会自动同步。完整 PDF 不包含可播放音频；迁移设备或清理浏览器前，请在资料库下载完整备份。</p>
+      {exportSnapshot && <SingleNoteExport report={report} {...exportSnapshot} onClose={() => setExportSnapshot(null)} />}
     </section>
   );
 }

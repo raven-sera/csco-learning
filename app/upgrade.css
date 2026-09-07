@@ -163,10 +163,6 @@
   .audioNoteSection { display:block!important; }
   .checkInModalHeader small,.checkInModalActions p,.checkInModalActions button,.checkInAtlasHeader small,.checkInAtlasHeader p,.checkInAtlasFooter p,.checkInAtlasFooter button { font-size:12px; }
   .checkInModalHeader > button,.checkInAtlasHeader > button { min-width:44px; min-height:44px; }
-  .shareMomentStudioHeader p,.shareMomentFieldTitle,.shareMomentFooterActions > button,.shareMomentShareStatus { font-size:14px; }
-  .shareMomentModeTabs b,.shareMomentTemplateGrid > button > b,.shareMomentCropTools label > span { font-size:14px; }
-  .shareMomentStudioHeader small,.shareMomentLiveHeader span,.shareMomentStatusRow span { font-size:12px; }
-  .shareMomentControlBlock textarea { font-size:16px; }
 
   @media (min-width:1600px) {
     .reportsPage,.schedulePage { max-width:1680px; margin:auto; }
@@ -206,12 +202,6 @@
     .workspaceShortcuts strong { font-size:14px; }
     .workspaceShortcuts small { font-size:12px; }
     .workspaceShortcuts > * > b { display:none; }
-    .workspaceShortcuts > button { background:var(--paper); border-color:var(--line); box-shadow:none; }
-    .workspaceShortcuts > button > span { background:transparent; color:var(--muted); font-size:18px; }
-    .mobileShareSpotlight { min-height:48px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border:1px solid var(--line); border-radius:12px; background:var(--paper); box-shadow:none; }
-    .mobileShareSpotlight > span,.mobileShareSpotlight > p { display:none; }
-    .mobileShareSpotlight > strong { font-family:inherit; font-size:14px; font-weight:600; }
-    .mobileShareSpotlight > b { align-self:auto; color:var(--muted); font-size:12px; font-weight:400; }
     .mobileDetailActions > button:last-child { background:var(--paper); color:var(--muted); border-color:var(--line); }
     .searchDock { margin:0 20px 16px; padding:14px; grid-template-columns:minmax(0,1fr) auto; gap:12px; }
     .searchIntro { grid-column:1; grid-row:1; padding:0; }
@@ -271,7 +261,6 @@
     .scheduleItemActions { display:flex; flex-wrap:wrap; gap:8px; }
     .scheduleItemActions button { min-height:44px; }
     .schedulePage .mobileActionHub { margin-bottom:96px; }
-    .schedulePage .mobileShareSpotlight { display:none; }
     .detailOverlay { overscroll-behavior:contain; }
     .detailMeta { gap:18px; }
     .detailTopActions { gap:6px; flex-wrap:wrap; justify-content:flex-end; }
@@ -285,9 +274,6 @@
     .recordingActions { grid-column:auto; grid-row:auto; flex-wrap:wrap; }
     .recordingActions button,.recordingActions a { min-height:44px; font-size:14px; }
     .mobileTextNoteCopy { display:block; font-size:14px; }
-    .shareMomentStudioHeader { position:relative; }
-    .shareMomentModeTabs { position:relative; top:auto; }
-    .shareMomentFooterActions .shareMomentTextButton { display:block; }
     .checkInAtlasGrid { grid-template-columns:1fr 1fr; }
     .checkInAtlasCard > header span,.checkInAtlasCard > header b,.checkInAtlasCard > footer small { font-size:12px; letter-spacing:0; }
     .checkInAtlasCard > header { flex-wrap:wrap; }
