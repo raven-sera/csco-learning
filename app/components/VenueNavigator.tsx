@@ -6,6 +6,8 @@ import { reports, sortReportsByDateTime, type Report } from '../lib/reports';
 import { nextScheduledReport, reportInterval } from '../lib/scheduleTools';
 import { getVenueById, resolveVenue, venues, type Venue } from '../lib/venueLocations';
 import VenueMap from './VenueMap';
+import './venue-map.css';
+import './venue-navigator.css';
 
 const dayOf = (report: Report) => report.dateTime.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? '';
 const DAYS = Array.from(new Set(reports.map(dayOf).filter(Boolean))).sort();

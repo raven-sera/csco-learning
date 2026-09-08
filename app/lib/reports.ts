@@ -106,21 +106,43 @@ export const contentKinds = Object.keys(reportKindCounts) as ReportKind[];
 export const fields = Array.from(new Set(reports.map((report) => report.field)));
 export const directions = Array.from(new Set(reports.flatMap((report) => report.directions)));
 
+const dateTimeCollator = new Intl.Collator('zh-CN');
+
 export function sortReportsByDateTime(input:readonly Report[]) {
-  return [...input].sort((a,b)=>a.dateTime.localeCompare(b.dateTime,'zh-CN')||a.id-b.id);
+  return [...input].sort((a,b)=>dateTimeCollator.compare(a.dateTime,b.dateTime)||a.id-b.id);
 }
 
 
 
 
 const norm = (value:string) => value.toLocaleLowerCase().normalize('NFKC').replace(/[^a-z0-9\u3400-\u9fff]+/g,'');
-function levenshtein(a:string,b:string) {
-  if (!a.length) return b.length; if (!b.length) return a.length;
-  const row = Array.from({length:b.length+1},(_,i)=>i);
-  for (let i=1;i<=a.length;i++) { let prev=row[0]; row[0]=i; for(let j=1;j<=b.length;j++){ const old=row[j]; row[j]=Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1)); prev=old; } }
+// Fuzzy queries are at most 32 characters and permit at most three edits.
+// Calls are synchronous, so every token comparison can reuse the same row.
+const distanceRow = new Uint8Array(33);
+function boundedLevenshtein(a:string,b:string,limit:number) {
+  if (Math.abs(a.length-b.length) > limit) return limit+1;
+  const row = distanceRow;
+  const outside = limit+1;
+  row.fill(outside,0,b.length+1);
+  for (let j=0;j<=Math.min(b.length,limit);j++) row[j]=j;
+  for (let i=1;i<=a.length;i++) {
+    const start = Math.max(1,i-limit);
+    const end = Math.min(b.length,i+limit);
+    let diagonal = row[start-1];
+    row[start-1] = start === 1 ? Math.min(i,outside) : outside;
+    let minimum = outside;
+    for (let j=start;j<=end;j++) {
+      const above = row[j];
+      row[j] = Math.min(above+1,row[j-1]+1,diagonal+(a[i-1]===b[j-1]?0:1));
+      diagonal = above;
+      minimum = Math.min(minimum,row[j]);
+    }
+    if (minimum > limit) return outside;
+    if (end < b.length) row[end+1]=outside;
+  }
   return row[b.length];
 }
-const searchIndex = new WeakMap<Report, { hay: string; tokens: string[] }>();
+const searchIndex = new WeakMap<Report, { hay: string; tokensByLength: string[][] }>();
 let previousQuery = '', normalizedQuery = '';
 export function searchScore(report: Report, query: string) {
   if (query !== previousQuery) { previousQuery = query; normalizedQuery = norm(query); }
@@ -128,9 +150,16 @@ export function searchScore(report: Report, query: string) {
   if (!q) return 1;
   let index = searchIndex.get(report);
   if (!index) {
+    const tokensByLength:string[][] = [];
+    // Keep the original split-before-normalize order, including fullwidth handling.
+    const tokens = new Set([report.sourceTitle,report.speaker,report.field,report.searchAliases].join(' ').toLowerCase().split(/[^a-z0-9\u3400-\u9fff]+/).map(norm));
+    for (const token of tokens) {
+      if (!token.length || token.length > 35) continue;
+      (tokensByLength[token.length] ??= []).push(token);
+    }
     index = {
       hay: norm([report.kind,report.scheduleCategory,report.program,report.session,report.sourceTitle,report.speaker,report.institution,report.field,report.directions.join(' '),report.abstractNo,report.searchAliases].join(' ')),
-      tokens: Array.from(new Set([report.sourceTitle,report.speaker,report.field,report.searchAliases].join(' ').toLowerCase().split(/[^a-z0-9\u3400-\u9fff]+/).map(norm).filter(Boolean))),
+      tokensByLength,
     };
     searchIndex.set(report, index);
   }
@@ -139,10 +168,14 @@ export function searchScore(report: Report, query: string) {
   if (q.length > 32 || q.length < 2) return 0;
   const threshold = q.length <= 4 ? 1 : q.length <= 8 ? 2 : 3;
   let best = threshold + 1;
-  for (const token of index.tokens) {
-    if (Math.abs(token.length - q.length) > threshold) continue;
-    best = Math.min(best, levenshtein(token, q));
-    if (best === 0) break;
+  for (let length=Math.max(1,q.length-threshold);length<=q.length+threshold;length++) {
+    if (Math.abs(length-q.length) >= best) continue;
+    const tokens = index.tokensByLength[length];
+    if (!tokens) continue;
+    for (const token of tokens) {
+      best = Math.min(best,boundedLevenshtein(token,q,best-1));
+      if (best === 0) return 60;
+    }
   }
   return best <= threshold ? 60 - best : 0;
 }

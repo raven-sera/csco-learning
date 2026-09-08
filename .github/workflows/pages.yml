@@ -2,7 +2,7 @@ name: Publish CSCO to GitHub Pages
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -25,8 +25,10 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
       - run: npm ci
+      - run: npm run lint
       - run: npm run test:paths
       - run: npm run test:venues
+      - run: npm run test:search
       - run: npm run test:calendar
       - name: Export and verify website
         run: npm run build:github
