@@ -1,15 +1,17 @@
 import type { NextConfig } from 'next';
 
-const nextConfig: NextConfig = {
+const githubPages = process.env.GITHUB_PAGES === 'true';
+
+const nextConfig: NextConfig = githubPages ? {
   output: 'export',
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
   trailingSlash: true,
   images: { unoptimized: true },
-  // Keep the editable phrase corpus available as text in development and export.
+  // The original Vite build also imports the editable phrase corpus as text.
   webpack(config) {
     config.module.rules.push({ test: /\.md$/, resourceQuery: /raw/, type: 'asset/source' });
     return config;
   },
-};
+} : {};
 
 export default nextConfig;

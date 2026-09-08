@@ -3,21 +3,12 @@
 默认发布目标：`https://raven-sera.github.io/csco-learning/`。
 网站包含三合一入口、会议学习台、个人日程与个人图书馆。互动游戏和海报图鉴仍保持原有的“待接入”状态。
 
-## 0.2.0 更新
-
-- 首页突出已开放的会议学习台，未开放的互动游戏与海报图鉴保留为简短说明，不再呈现不可用的按钮和大幅装饰。
-- 首页主体静态输出，恢复目标地址的动态逻辑仅影响入口按钮；避免整个首屏等待 JavaScript。手机端移除与底栏重复的快捷入口，报告更早进入可见区域。
-- 筛选默认收起，已选条件始终可见并支持逐项移除；收藏批量操作集中到「我的收藏」，去掉重复浮层。空收藏、空日程和无匹配结果分别给出下一步指引。
-- 模糊检索按词长索引候选词，使用有界编辑距离并复用工作内存，保持旧版匹配分数与排序。收藏或排期变更不再重算「全部内容」的检索结果。
-- 删除已废弃的入口、旧首页和悬浮收藏样式；地图样式随地图按需加载。清除旧 Vite / vinext / Cloudflare / OpenAI 托管工具链，保留一套 Next.js 开发与静态发布方式。
-- 个人资料数据结构、原图、录音、地图资源及第三方许可证保持不变。检查与清理仅涉及本发布目录，不影响旁边的旧站和备份文件。
-
 ## 首次发布
 
 1. 在 `raven-sera` 账号中创建 `csco-learning` 仓库。免费 GitHub Pages 使用公开仓库，上传的源码和网站将公开可访问。
 2. 把源码放在仓库根目录，连同隐藏的 `.github` 文件夹一起上传；不要上传 `node_modules`、本地备份或个人笔记。
 3. 在仓库的 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。
-4. 上传到 `main` 分支后，**Actions → Publish CSCO to GitHub Pages** 会构建并发布。若之前因尚未开启 Pages 失败，在开启后重新运行该工作流。
+4. 上传到 `main` 或 `master` 分支后，**Actions → Publish CSCO to GitHub Pages** 会构建并发布。若之前因尚未开启 Pages 失败，在开启后重新运行该工作流。
 5. 等待发布步骤成功，再打开上述网址。后续推送代码会自动更新网站。
 
 如果使用 SSH 上传，先把本机 SSH 公钥添加到 GitHub，再验证：
@@ -34,28 +25,20 @@ ssh -T git@github.com
 
 ```powershell
 npm ci
-npm run lint
 npm run test:paths
 npm run test:venues
 npm run test:calendar
-npm run test:search
 npm run build:github
-npm start
 ```
 
 静态网站生成在 `out` 文件夹。发布工作流会自动识别账号和仓库路径；本地默认使用上述目标。若改名，通过 `GITHUB_REPOSITORY=账号/仓库` 指定，或设置 `NEXT_PUBLIC_BASE_PATH` 和 `NEXT_PUBLIC_SITE_ORIGIN`。
 
-`npm start`（或 `npm run preview`）使用 Node.js 在 `http://127.0.0.1:3000/csco-learning/` 预览本次静态导出，仓库路径会随构建配置变化。先完成构建，并保留 `out` 与 `.next/routes-manifest.json`；可通过 `PORT` 环境变量调整端口。
-
-日常修改使用 `npm run dev`，浏览器打开终端给出的本地地址；默认开发地址不带仓库前缀。`npm run test:search -- --benchmark` 可复测模糊检索；耗时取决于本机环境。
-
-`npm run build` 与 `npm run build:github` 均生成并检查同一套 GitHub Pages 静态文件。开发、构建与预览不需要 Cloudflare Worker、ChatGPT 登录、数据库或付费服务器。工作流在发布前运行 ESLint、路径、会场、日历与检索回归检查。
+GitHub 构建使用已安装的 Next 静态导出，无须 Cloudflare Worker、ChatGPT 登录、数据库或付费服务器。构建过程会检查页面、资源路径和三合一入口。原始项目中的 `npm run build` 仍用于旧版托管；GitHub 发布必须使用 `npm run build:github`。
 
 ## 加载速度
 
 - 入口首屏显示后，空闲时提前加载学习台；鼠标悬停或键盘聚焦入口也会准备页面。省流模式、离线和 2G 网络跳过这项后台加载。
-- 已选条件即使在筛选面板收起后也能单独移除，清空搜索后焦点保留在输入框。
-- 打开地图后才加载地图组件、样式、图面数据与本地 Three.js 引擎；入口与报告列表不预载立体地图。原图仅在切换原图或降级显示时加载。
+- 打开地图后才加载地图组件、图面数据与本地 Three.js 引擎；入口与报告列表不预载立体地图。原图仅在切换原图或降级显示时加载。
 - 立体地图按交互和尺寸变化绘制，不持续空转；关闭时释放 WebGL、事件监听和尺寸观察器。引擎加载失败或图形连接中断时，自动切换到可点选的原图。
 
 ## 会场地图与数据边界

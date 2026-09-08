@@ -17,6 +17,7 @@ const result = spawnSync(process.execPath, ['node_modules/next/dist/bin/next', '
   stdio: 'inherit',
   env: {
     ...process.env,
+    GITHUB_PAGES: 'true',
     NEXT_TELEMETRY_DISABLED: '1',
     NEXT_PUBLIC_BASE_PATH: basePath,
     NEXT_PUBLIC_SITE_ORIGIN: origin,
