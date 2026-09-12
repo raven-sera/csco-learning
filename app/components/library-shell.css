@@ -1,31 +1,31 @@
 @media screen {
   .libraryPage { min-height:100svh; }
-  .notebookDetailOverlay { background:#f3f6f4; }
-  .notebookDetailShell { --notebook-topbar-height:64px; max-width:1600px; margin:auto; min-height:100svh; background:#f3f6f4; }
-  .notebookDetailShell .detailTopbar { background:#f3f6f4f5; min-height:64px; height:auto; padding:10px clamp(16px,4vw,64px); border-bottom:1px solid #d7e0da; z-index:25; }
+  .notebookDetailOverlay { background:var(--paper); }
+  .notebookDetailShell { --notebook-topbar-height:64px; max-width:1600px; margin:auto; min-height:100svh; background:var(--paper); }
+  .notebookDetailShell .detailTopbar { background:rgba(238,243,251,.96); min-height:64px; height:auto; padding:10px clamp(16px,4vw,64px); border-bottom:1px solid var(--line); z-index:25; }
   .notebookReportHeader { padding:24px clamp(16px,4vw,64px) 12px; }
-  .notebookReportHeader > p { margin:0 0 8px; color:#49725b; font-size:14px; font-weight:700; }
-  .notebookReportHeader h1 { max-width:1200px; margin:0; font:750 clamp(21px,2.2vw,32px)/1.5 Arial,"Microsoft YaHei",sans-serif; color:#132e26; overflow-wrap:anywhere; }
-  .notebookReportLine { display:flex; flex-wrap:wrap; gap:4px 20px; margin-top:12px; color:#586e63; font-size:14px; }
-  .notebookReportDetails { margin-top:10px; color:#344c43; font-size:14px; }
+  .notebookReportHeader > p { margin:0 0 8px; color:var(--brand); font-size:14px; font-weight:700; }
+  .notebookReportHeader h1 { max-width:1200px; margin:0; font:750 clamp(21px,2.2vw,32px)/1.5 Arial,"Microsoft YaHei",sans-serif; color:var(--ink); overflow-wrap:anywhere; }
+  .notebookReportLine { display:flex; flex-wrap:wrap; gap:4px 20px; margin-top:12px; color:var(--muted); font-size:14px; }
+  .notebookReportDetails { margin-top:10px; color:var(--muted); font-size:14px; }
   .notebookReportDetails summary { display:list-item; cursor:pointer; min-height:44px; padding:10px 0; }
   .notebookReportDetails dl { display:grid; gap:8px; margin:4px 0 12px; }
   .notebookReportDetails dl > div { display:flex; gap:16px; }
-  .notebookReportDetails dt { flex:none; min-width:44px; color:#586e63; }
+  .notebookReportDetails dt { flex:none; min-width:44px; color:var(--muted); }
   .notebookReportDetails dd { margin:0; }
   .notebookReportDetails > div,.notebookQuickActions { display:flex; gap:8px; flex-wrap:wrap; }
-  .notebookReportDetails button,.notebookReportDetails a,.notebookQuickActions button { min-height:44px; padding:8px 15px; border:1px solid #d7e0da; border-radius:10px; background:#fff; font:600 14px/1.5 Arial,"Microsoft YaHei",sans-serif; color:#132e26; cursor:pointer; }
+  .notebookReportDetails button,.notebookReportDetails a,.notebookQuickActions button { min-height:44px; padding:8px 15px; border:1px solid var(--line); border-radius:10px; background:#fff; font:600 14px/1.5 Arial,"Microsoft YaHei",sans-serif; color:var(--ink); cursor:pointer; }
   .notebookQuickActions { margin:12px 0 0; }
-  .notebookQuickActions button:first-child { background:#153d2d; border-color:#153d2d; color:#fff; }
+  .notebookQuickActions button:first-child { background:var(--brand); border-color:var(--brand); color:#fff; }
   .notebookDetailContent { padding:0 clamp(16px,4vw,64px) 40px; }
   .notebookDetailContent > .learningSection { margin-top:0; padding-top:16px; border-top:0; }
-  .librarySpotlight { display:flex; flex-direction:column; gap:8px; padding:20px; border:1px solid #d7e0da; border-radius:16px; background:#fff; color:#132e26; }
-  .librarySpotlight > span { font-size:12px; color:#586e63; letter-spacing:.08em; }
+  .librarySpotlight { display:flex; flex-direction:column; gap:8px; padding:20px; border:1px solid var(--line); border-radius:16px; background:#fff; color:var(--ink); }
+  .librarySpotlight > span { font-size:12px; color:var(--muted); letter-spacing:.08em; }
   .librarySpotlight strong { font-size:20px; }
-  .librarySpotlight p { margin:0; font-size:14px; color:#586e63; }
+  .librarySpotlight p { margin:0; font-size:14px; color:var(--muted); }
   .librarySpotlight b { font-size:14px; }
-  .scheduleItemNotes { background:#eaf4dd!important; border:1px solid #9aae86!important; color:#132e26!important; }
-  .notebookDetailShell button:focus-visible,.notebookDetailShell a:focus-visible { outline:3px solid #8eaf46; outline-offset:3px; }
+  .scheduleItemNotes { min-height:44px; padding:8px 12px; border-radius:9px; background:var(--paper); border:1px solid var(--line-strong); color:var(--ink); font-weight:700; }
+  .notebookDetailShell button:focus-visible,.notebookDetailShell a:focus-visible { outline:3px solid var(--brand); outline-offset:3px; }
   @media(max-width:760px) {
     .notebookDetailShell { --notebook-topbar-height:60px; }
     .notebookDetailShell .detailTopbar { min-height:60px; padding:8px 16px; gap:8px; }

@@ -7,8 +7,8 @@ import { BrandLockup } from './BrandLockup';
 import { PORTAL_ENTER_EVENT, safeReturnPath } from '../lib/entryNavigation';
 
 const sites = [
-  { id:'01', kind:'game', title:'癌症知识互动游戏', label:'互动学习', description:'在选择、反馈与挑战中，巩固肿瘤学知识。', features:['互动练习','游戏化学习'] },
   { id:'02', kind:'learning', title:'CSCO 会议学习台', label:'会议工具', description:'安排听会日程，记录现场收获，在个人图书馆随时回看。', features:['报告检索','私人日程','笔记与图书馆'] },
+  { id:'01', kind:'game', title:'癌症知识互动游戏', label:'互动学习', description:'在选择、反馈与挑战中，巩固肿瘤学知识。', features:['互动练习','游戏化学习'] },
   { id:'03', kind:'posters', title:'CSCO 会议海报图鉴', label:'学术海报', description:'集中浏览与查找会议海报，让有价值的研究随时可回看。', features:['海报浏览','内容检索'] },
 ] as const;
 
@@ -40,13 +40,26 @@ export default function SitePortal() {
   }, [warmup]);
   const enter = () => window.dispatchEvent(new Event(PORTAL_ENTER_EVENT));
   return <main className="unifiedPortal" id="main-content">
-    <header className="portalBrandBar"><Link href="/" aria-label="汇度三合一首页"><BrandLockup /></Link><span>肿瘤学互动学习 · 2026</span></header>
+    <header className="portalBrandBar"><Link href="/" aria-label="汇度三合一首页"><BrandLockup /></Link><span><i aria-hidden="true" /> 肿瘤学互动学习 · 2026</span></header>
     <section className="portalWelcome" aria-labelledby="portal-title">
-      <p className="portalEyebrow">汇度 · 三合一学习入口</p>
-      <h1 id="portal-title">好奇、学习、记录。<br/><em>从这里开始。</em></h1>
-      <p>三个学习空间，一个清晰入口。选择你现在想做的事。</p>
+      <div className="portalWelcomeCopy">
+        <p className="portalEyebrow">探索有方向，学习有回响</p>
+        <h1 id="portal-title">好奇、学习、记录。<br/><em>从这里开始。</em></h1>
+        <p className="portalIntro">连接会前的期待、会中的灵感与会后的思考。<br/>三个学习空间，让知识不止于相遇。</p>
+        <a className="portalExplore" href="#learning-spaces">探索学习空间 <span aria-hidden="true">↓</span></a>
+      </div>
+      <aside className="portalJourney" aria-label="你的会议学习旅程">
+        <div className="portalJourneyHeading"><span>你的会议学习旅程</span><b>CSCO <span>2026</span></b></div>
+        <ol>
+          <li><span>01</span><div><strong>会前 · 找到方向</strong><small>检索报告，安排专属日程</small></div></li>
+          <li><span>02</span><div><strong>会中 · 留住灵感</strong><small>记录笔记，收藏重要时刻</small></div></li>
+          <li><span>03</span><div><strong>会后 · 连接知识</strong><small>回到图书馆，整理每一份收获</small></div></li>
+        </ol>
+        <span className="portalJourneyOrbit" aria-hidden="true" />
+      </aside>
     </section>
     {resuming && <p className="portalResume" role="status">欢迎回来。进入会议学习台，即可继续刚才打开的内容。</p>}
+    <div className="portalSectionHeading" id="learning-spaces"><h2>选择你的学习空间</h2><span>一个入口，连接三种可能</span></div>
     <section className="unifiedPortalGrid" aria-label="三个学习空间">
       {sites.map((site) => <article className={`unifiedPortalCard ${site.kind}`} key={site.id}>
         <header><span>{site.id} / {site.label}</span><b>{site.kind === 'learning' ? '已开放' : '待接入'}</b></header>

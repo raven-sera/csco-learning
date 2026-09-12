@@ -8,15 +8,15 @@
   border-radius:var(--radius-sm); background:var(--paper-raised); color:var(--ink);
   font:inherit; font-size:13px; font-weight:650; line-height:1.35; cursor:pointer;
 }
-.venueMap button:hover:not(:disabled) { border-color:var(--ink); background:var(--lime-soft); }
-.venueMap button[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--paper-raised); }
+.venueMap button:hover:not(:disabled):not([aria-pressed="true"]) { border-color:var(--ink); background:var(--lime-soft); }
+.venueMap button[aria-pressed="true"] { background:var(--brand); border-color:var(--brand); color:var(--paper-raised); }
 .venueMap button:disabled { opacity:.45; cursor:default; }
 .venueMap :is(button, select, a, summary):focus-visible, .venueMap canvas:focus-visible, .venueMapSourceScroller:focus-visible {
   outline:3px solid var(--coral); outline-offset:3px;
 }
 .venueMapToolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; flex-shrink:0; }
 .venueMapControlGroup { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
-.venueMapZoom { position:absolute; right:8px; bottom:8px; z-index:4; padding:4px; border-radius:10px; background:rgba(255,255,255,.9); box-shadow:0 2px 8px rgba(18,35,27,.12); }
+.venueMapZoom { position:absolute; right:8px; bottom:8px; z-index:4; padding:4px; border-radius:10px; background:rgba(255,255,255,.9); box-shadow:0 2px 8px rgba(12,27,58,.12); }
 .venueMapViewport {
   position:relative; flex:1 0 180px; min-height:180px; min-width:0; overflow:hidden;
   background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md);
@@ -30,12 +30,12 @@
 .venueMapLabels { overflow:hidden; pointer-events:none; }
 .venueMapLabel {
   position:absolute; top:0; left:0; width:max-content; max-width:180px; padding:3px 6px;
-  border:1px solid rgba(141,151,143,.5); border-radius:5px; background:rgba(255,253,248,.95);
+  border:1px solid rgba(156,171,196,.65); border-radius:5px; background:rgba(255,255,255,.95);
   color:var(--ink); font-size:11px; line-height:1.4; font-weight:600; white-space:nowrap;
-  box-shadow:0 2px 5px rgba(18,35,27,.06); pointer-events:none;
+  box-shadow:0 2px 5px rgba(12,27,58,.06); pointer-events:none;
 }
 .venueMapLabel.isSelected { background:var(--ink); color:var(--paper-raised); border-color:var(--lime); font-weight:750; z-index:3; }
-.venueMapLabel.isScheduled { background:var(--lime-soft); border-color:var(--line-strong); }
+.venueMapLabel.isScheduled { background:var(--lime); color:var(--ink); border-color:var(--line-strong); }
 .venueMapLabel.isReference { background:var(--coral); color:var(--ink); border-color:var(--ink); }
 .venueMapLabel.isEntrance { background:var(--paper-raised); border:2px solid var(--ink); font-weight:750; }
 .venueMapLabel.isFloor { background:var(--ink); color:var(--paper-raised); font-size:15px; padding:5px 9px; }

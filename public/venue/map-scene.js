@@ -32,9 +32,9 @@
       this.references = new Set();
       const style = getComputedStyle(container);
       this.colors = {
-        selected: style.getPropertyValue('--ink').trim() || '#12231b',
-        scheduled: style.getPropertyValue('--lime').trim() || '#d5f86a',
-        reference: style.getPropertyValue('--coral').trim() || '#ef725e',
+        selected: style.getPropertyValue('--ink').trim() || '#0c1b3a',
+        scheduled: style.getPropertyValue('--lime').trim() || '#fcf150',
+        reference: style.getPropertyValue('--coral').trim() || '#ec6749',
       };
       this.scene = new T.Scene();
       this.camera = new T.OrthographicCamera(-60, 60, 40, -40, 0.1, 700);
@@ -55,8 +55,8 @@
         canvas.setAttribute('role', 'img');
         canvas.setAttribute('aria-label', '山东大厦立体会场图。方向键旋转，加减键缩放，Home 复位。使用地图下方的会场选择器选择会场。');
         container.append(canvas);
-        this.scene.add(new T.HemisphereLight(0xffffff, 0xd5dbc2, 1.7));
-        const sun = new T.DirectionalLight(0xfffdf2, 2.1);
+        this.scene.add(new T.HemisphereLight(0xffffff, 0xeef3fb, 1.7));
+        const sun = new T.DirectionalLight(0xffffff, 2.1);
         sun.position.set(-30, 130, 35);
         sun.castShadow = true;
         sun.shadow.mapSize.set(1024, 1024);
@@ -119,22 +119,22 @@
         }
       }
       const slab = this.extrude(floor, data.outline, 0.7, [
-        new T.MeshStandardMaterial({ color: 0xf5f3e9, roughness: 0.95 }),
-        new T.MeshStandardMaterial({ color: 0xc9cfbe, roughness: 0.95 }),
+        new T.MeshStandardMaterial({ color: 0xeef3fb, roughness: 0.95 }),
+        new T.MeshStandardMaterial({ color: 0x9cabc4, roughness: 0.95 }),
       ], data.voids);
       slab.position.y = -0.7;
       group.add(slab);
       for (const polygon of data.extras) {
         group.add(this.extrude(floor, polygon, 0.7, [
-          new T.MeshStandardMaterial({ color: 0xd5dfcd, roughness: 0.9 }),
-          new T.MeshStandardMaterial({ color: 0xf5f4ec, roughness: 0.9 }),
+          new T.MeshStandardMaterial({ color: 0xd7dfed, roughness: 0.9 }),
+          new T.MeshStandardMaterial({ color: 0xeef3fb, roughness: 0.9 }),
         ]));
       }
       for (const room of this.data.rooms) {
         if (room.floor !== floor) continue;
         const color = this.data.categories[room.kind].color;
         const roof = new T.MeshStandardMaterial({ color, roughness: 0.85 });
-        const wall = new T.MeshStandardMaterial({ color: 0xf7f3e7, roughness: 0.9 });
+        const wall = new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
         const height = HEIGHTS[room.kind] || 1.55;
         const mesh = this.extrude(floor, room.polygon, height, [roof, wall], [], true);
         mesh.userData.roomId = room.id;
@@ -147,7 +147,7 @@
             this.framingPoints.push({ floor, position: point });
             return point;
           })),
-          new T.LineBasicMaterial({ color: 0xfffdf5 }),
+          new T.LineBasicMaterial({ color: 0xffffff }),
         );
         group.add(outline);
         const center = new T.Box3().setFromObject(mesh).getCenter(new T.Vector3());
@@ -198,7 +198,7 @@
         const scheduledRoom = this.scheduled.has(id);
         const reference = this.references.has(id);
         room.roof.color.set(chosen ? this.colors.selected : reference ? this.colors.reference : scheduledRoom ? this.colors.scheduled : room.color);
-        room.outline.material.color.set(chosen ? this.colors.scheduled : reference ? this.colors.reference : '#fffdf5');
+        room.outline.material.color.set(chosen ? this.colors.scheduled : reference ? this.colors.reference : '#ffffff');
         room.label.element.classList.toggle('isSelected', chosen);
         room.label.element.classList.toggle('isScheduled', scheduledRoom && !chosen);
         room.label.element.classList.toggle('isReference', reference && !chosen);
