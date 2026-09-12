@@ -123,10 +123,6 @@
   .mycoShell .scheduleItemCheckIn[aria-pressed="true"],.mycoShell .scheduleItemCheckIn:hover { color:white; }
   .mycoShell .scheduleEmpty > span { color:var(--brand); border-color:var(--line); }
   .mycoShell .scheduleEmpty p { color:var(--muted); font-size:13px; }
-  .mycoShell .libraryPage { min-height:auto; }
-  .mycoShell :is(.libraryPrivacy,.libraryToolbar,.libraryContinue,.libraryCard) { border-radius:20px; border-color:#fff; background:#ffffffa6; }
-  .mycoShell .libraryHeading h1 { font:650 30px/1.4 Arial,"Microsoft YaHei",sans-serif; }
-  .mycoShell .personalLibrary { padding-right:var(--page-gutter); padding-left:var(--page-gutter); }
   .mycoShell :is(button,a,select) { transition:transform .18s,box-shadow .18s,background .18s,color .18s; }
   .mycoShell :is(button,a):not(:disabled):hover { filter:brightness(.98); }
   .mycoShell :is(button,a):not(:disabled):active { transform:scale(.97); }

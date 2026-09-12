@@ -94,8 +94,8 @@
 }
 .mycoNavItem.isActive .mycoIcon { color: #fff; }
 .mycoNavItem.isActive .mycoNavCount { color: #fff; background: rgba(255, 255, 255, .17); }
-.mycoNavItem.mycoUnavailable { color: #788299; cursor: not-allowed; }
-.mycoUnavailable small { margin-left: auto; padding: 2px 5px; border: 1px solid #dce1ed; border-radius: 5px; font-size: 9px; white-space: nowrap; }
+.mycoShell .scheduleActions .scheduleAtlasButton { display:flex; gap:16px; justify-content:space-between; align-items:center; min-height:42px; padding:10px 14px; border:1px solid #aab6d7; border-radius:12px; font-size:12px; font-weight:600; }
+@media(max-width:600px) { .mycoShell .scheduleActions .scheduleAtlasButton { flex:1 1 45%; } }
 .mycoTools { display: grid; gap: 4px; margin-top: 30px; padding-top: 25px; border-top: 1px solid rgba(162, 177, 209, .23); }
 .mycoTools .mycoGroupLabel { margin-bottom: 7px; }
 .mycoTools .mycoNavItem { min-height: 45px; font-size: 13px; }

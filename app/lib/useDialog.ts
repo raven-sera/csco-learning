@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 const dialogs: HTMLElement[] = [];
 let previousOverflow = '';
-export function useDialog(selector: string, onClose: () => void, active = true) {
+export function useDialog(selector: string, onClose: () => void, active = true, restoreFocus = true) {
   const close = useRef(onClose);
   useEffect(() => { close.current = onClose; }, [onClose]);
   useEffect(() => {
@@ -31,7 +31,7 @@ export function useDialog(selector: string, onClose: () => void, active = true) 
       const index = dialogs.indexOf(element);
       if (index >= 0) dialogs.splice(index, 1);
       if (!dialogs.length) document.body.style.overflow = previousOverflow;
-      if (previous?.isConnected) previous.focus({ preventScroll: true });
+      if (restoreFocus && previous?.isConnected) previous.focus({ preventScroll: true });
     };
-  }, [selector, active]);
+  }, [selector, active, restoreFocus]);
 }

@@ -9,7 +9,7 @@ import { localPathname } from '../lib/sitePaths';
 export default function EntryGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const localPath = localPathname(pathname || '/');
-  const guarded = localPath === '/learning' || localPath === '/favorites' || localPath === '/schedule' || localPath === '/library';
+  const guarded = localPath === '/learning' || localPath === '/favorites' || localPath === '/schedule' || localPath === '/library' || localPath === '/atlas';
   const router = useRouter();
   // Deliberately document-local: a reload, a new tab or a direct URL returns to the portal.
   const [entered, setEntered] = useState(false);

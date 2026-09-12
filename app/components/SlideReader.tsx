@@ -180,10 +180,17 @@ export default function SlideReader({ slides, reportId, active, initialSlideId, 
     const scroll = () => {
       if (!restored.current) return;
       const top = root.getBoundingClientRect().top + root.clientTop;
+      const bottom = top + root.clientHeight;
+      let visibleHeight = 0;
       let candidate: StoredSlide | undefined;
       for (const slide of visible) {
         const rect = pages.current.get(slide.id)?.getBoundingClientRect();
-        if (rect && rect.bottom > top + 1) { candidate = slide; break; }
+        if (!rect) continue;
+        if (rect.top >= bottom) break;
+        const height = Math.min(rect.bottom, bottom) - Math.max(rect.top, top);
+        // The final page may not reach the top at maximum scroll. Track the
+        // dominant visible page rather than a sliver of the preceding page.
+        if (height > visibleHeight) { candidate = slide; visibleHeight = height; }
       }
       if (!candidate) return;
       const page = pages.current.get(candidate.id)!;

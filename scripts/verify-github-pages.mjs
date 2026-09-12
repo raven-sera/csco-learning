@@ -5,7 +5,7 @@ import path from 'node:path';
 // Verify actual exported pages and local asset targets before a Pages deployment.
 export function verifyExport(root, basePath, origin) {
   const out = path.join(root, 'out');
-  const workspacePages = ['learning/index.html', 'favorites/index.html', 'schedule/index.html', 'library/index.html'];
+  const workspacePages = ['learning/index.html', 'favorites/index.html', 'schedule/index.html', 'library/index.html', 'atlas/index.html'];
   const pages = ['index.html', ...workspacePages, '404.html'];
   for (const file of [...pages,
     'huidu-logo.png', 'huidu-latest-qr.jpg', 'og.png', 'venue/three.min.js',
@@ -31,5 +31,5 @@ export function verifyExport(root, basePath, origin) {
   }
   const home = readFileSync(path.join(out, 'index.html'), 'utf8');
   assert.ok(home.includes(`${origin}${basePath}/og.png`), 'Incorrect social preview URL');
-  console.log('Verified: five routes, repository paths, preview image and lazy map assets.');
+  console.log('Verified: six routes, repository paths, preview image and lazy map assets.');
 }

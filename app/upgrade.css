@@ -95,8 +95,8 @@
   .noteToolbar button,.noteToolbar select { min-height:40px; font-size:14px; }
   .noteRichContent { font-size:16px; line-height:1.85; }
   .audioNoteSection { display:block!important; }
-  .checkInModalHeader small,.checkInModalActions p,.checkInModalActions button,.checkInAtlasHeader small,.checkInAtlasHeader p,.checkInAtlasFooter p,.checkInAtlasFooter button { font-size:12px; }
-  .checkInModalHeader > button,.checkInAtlasHeader > button { min-width:44px; min-height:44px; }
+  .checkInModalHeader small,.checkInModalActions p,.checkInModalActions button { font-size:12px; }
+  .checkInModalHeader > button { min-width:44px; min-height:44px; }
 
   @media (min-width:1600px) {
     .reportsPage,.schedulePage { max-width:1680px; margin:auto; }
@@ -170,13 +170,9 @@
     .recordingActions { grid-column:auto; grid-row:auto; flex-wrap:wrap; }
     .recordingActions button,.recordingActions a { min-height:44px; font-size:14px; }
     .mobileTextNoteCopy { display:block; font-size:14px; }
-    .checkInAtlasGrid { grid-template-columns:1fr 1fr; }
-    .checkInAtlasCard > header span,.checkInAtlasCard > header b,.checkInAtlasCard > footer small { font-size:12px; letter-spacing:0; }
-    .checkInAtlasCard > header { flex-wrap:wrap; }
   }
   @media (max-width:360px) {
     .collectionToolbar button { font-size:13px; }
-    .checkInAtlasGrid { grid-template-columns:1fr; }
   }
   @media (prefers-reduced-motion:reduce) {
     html { scroll-behavior:auto; }

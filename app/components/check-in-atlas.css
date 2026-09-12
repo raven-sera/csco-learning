@@ -1,0 +1,160 @@
+.attendanceAtlas { max-width:1400px; margin:auto; padding:28px var(--page-gutter) 48px; }
+.attendanceAtlas h1,.attendanceAtlas h2,.attendanceAtlas h3 { font-family:Arial,"Microsoft YaHei",sans-serif; letter-spacing:-.025em; }
+.attendanceHeading { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:30px; }
+.attendanceEyebrow { font-size:10px; font-weight:600; letter-spacing:.16em; color:#7b87a3; }
+.attendanceHeading h1 { display:flex; align-items:center; gap:18px; margin:12px 0; font-size:32px; font-weight:650; line-height:1.3; color:#263654; }
+.attendanceHeading p { margin:0; color:#76839f; font-size:13px; }
+.attendancePlane { display:grid; place-items:center; width:43px; height:43px; border:1px solid white; border-radius:50%; background:linear-gradient(130deg,#ffffffe0,#e5e7ffb0); box-shadow:0 7px 15px #6476b610; color:#7283ce; }
+.attendancePlane svg { width:22px; height:22px; }
+.attendanceScheduleLink { display:flex; gap:24px; align-items:center; min-height:44px; padding:11px 17px; border:1px solid white; border-radius:14px; background:#ffffffb5; font-size:12px; color:#5c6eaa; }
+.attendanceScheduleLink:hover { background:#fff; box-shadow:0 8px 22px #7083bd13; transform:translateY(-2px); }
+.attendanceStats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:26px; }
+.attendanceStats > div { padding:24px; border:1px solid white; border-radius:21px; background:linear-gradient(140deg,#ffffffea,#ffffff90); box-shadow:0 7px 24px #54689706; }
+.attendanceStats > div > span { display:block; font-size:12px; color:#7886a2; }
+.attendanceStats strong { display:block; margin:14px 0 6px; font:500 42px/1.1 Arial,sans-serif; letter-spacing:-.04em; color:#4e63ba; }
+.attendanceStats strong small { font-size:11px; margin-left:8px; color:#7c88a5; letter-spacing:0; }
+.attendanceStats p { margin:0; font-size:10px; color:#8c95ac; }
+.attendanceWelcome { padding:20px 24px; margin:0 0 24px; border:1px solid #ffffffdd; border-radius:20px; background:#ffffff75; color:#58698b; }
+.attendanceWelcome strong { font-size:14px; font-weight:600; }
+.attendanceWelcome p { font-size:12px; line-height:1.8; margin:9px 0; }
+.attendanceWelcome a { display:inline-flex; align-items:center; min-height:40px; font-size:12px; color:#5b70c5; }
+.attendanceMapPanel { overflow:hidden; border:1px solid #ffffff80; border-radius:26px; background:radial-gradient(ellipse at 90% 0,#30325299,transparent 65%),#18243d; box-shadow:0 18px 45px #253c6818; color:#d4def1; }
+.attendanceMapHeader { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:18px; padding:24px 28px 10px; }
+.attendanceMapHeader > div > span { font-size:9px; letter-spacing:.17em; color:#8c9bbe; }
+.attendanceMapHeader h2 { margin:8px 0 0; font-size:19px; font-weight:500; color:#edf2ff; }
+.attendanceFloorSwitch { display:flex; gap:3px; padding:4px; border:1px solid #57638266; border-radius:12px; background:#131c303b; }
+.attendanceAtlas .attendanceFloorSwitch button { padding:8px 13px; min-height:36px; border:0; border-radius:9px; background:transparent; color:#a1afcc; font-size:11px; }
+.attendanceAtlas .attendanceFloorSwitch button[aria-pressed="true"] { background:#64789a59; color:#fff; box-shadow:0 2px 8px #0c152233; }
+.attendanceMapViewport { overflow:auto; overscroll-behavior:contain; scrollbar-color:#667aa266 #17243c; scrollbar-width:thin; max-height:650px; }
+.attendanceMapViewport:focus-visible { outline:2px solid #9acadc; outline-offset:-3px; }
+.attendanceFlightMap { display:block; max-width:none; height:auto; }
+.attendanceFloorTitle { font:600 22px Arial,sans-serif; fill:#abbada; }
+.attendanceFloorTitle tspan { font:12px Arial,"Microsoft YaHei",sans-serif; fill:#7c8eae; }
+.attendanceFloorOutline { fill:#1b2b45; stroke:#7186b365; stroke-width:1.6; }
+.attendanceRoom { fill:#2a3a54; stroke:#93a2c140; stroke-width:1; transition:fill .2s,stroke .2s; }
+.attendanceRoom.isVisited { fill:#587bac65; stroke:#91b5db9c; }
+.attendanceRoom.isSelected { fill:#7893d0a3; stroke:#c6dcff; stroke-width:2; }
+.attendanceFloorSeparation { stroke:#687b9d36; stroke-dasharray:3 9; }
+.attendanceFlightRoutes path { fill:none; stroke-linecap:round; opacity:.9; stroke-dasharray:7 5; animation:attendanceRouteIn .8s ease-out both; }
+.attendanceFlightRoutes path.isDimmed { opacity:.2; }
+.attendanceMapNode { cursor:pointer; outline:none; }
+.attendanceNodeHit { fill:transparent; }
+.attendanceNodeHalo { fill:#9bcfe326; stroke:#96c9e245; transition:fill .2s,stroke .2s; }
+.attendanceNodeCore { fill:#9dc9e6; stroke:#e6f8ff; stroke-width:1.4; }
+.attendanceNodeCount { font:700 11px Arial,sans-serif; fill:#243454; pointer-events:none; }
+.attendanceNodeLabel { font:12px Arial,"Microsoft YaHei",sans-serif; fill:#dceaff; paint-order:stroke; stroke:#18243d; stroke-width:4px; stroke-linejoin:round; pointer-events:none; }
+.attendanceMapNode:hover .attendanceNodeHalo,.attendanceMapNode:focus-visible .attendanceNodeHalo,.attendanceMapNode.isSelected .attendanceNodeHalo { fill:#c1b1fa55; stroke:#d2c0ff; stroke-width:2; }
+.attendanceMapNode:hover .attendanceNodeCore,.attendanceMapNode.isSelected .attendanceNodeCore { fill:#d2bcf6; }
+.attendanceMapEmpty { font:14px Arial,"Microsoft YaHei",sans-serif; fill:#92a4c5; paint-order:stroke; stroke:#18243d; stroke-width:5px; }
+.attendanceMapFooter { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; padding:12px 24px 14px; }
+.attendanceMapFooter > div:first-child { display:flex; flex-wrap:wrap; gap:18px; font-size:10px; color:#9eacca; }
+.attendanceMapFooter span { display:inline-flex; align-items:center; gap:7px; }
+.attendanceMapFooter i { width:6px; height:6px; border-radius:50%; background:#9dc9e6; }
+.attendanceMapFooter span + span i { width:17px; height:1px; background:#b4bce8; }
+.attendanceMapZoom { display:flex; align-items:center; gap:4px; }
+.attendanceMapZoom button { min-height:36px; min-width:36px; padding:7px 9px; border:1px solid #7d8caa30; border-radius:9px; background:#ffffff07; color:#b6c3dd; font-size:12px; }
+.attendanceMapZoom button:disabled { opacity:.35; }
+.attendanceMapDisclaimer { margin:0; padding:13px 24px; border-top:1px solid #798baa20; color:#8797b6; font-size:10px; line-height:1.8; }
+.attendanceCoverage { padding:12px 16px; margin:14px 0 0; border-radius:12px; background:#ffffff85; border:1px solid #fff; color:#78839c; font-size:11px; line-height:1.8; }
+.attendanceInsights { display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:24px; }
+.attendanceVenuePanel,.attendanceKeywordPanel,.attendanceLog { min-width:0; padding:25px; border:1px solid white; border-radius:23px; background:linear-gradient(130deg,#ffffffd9,#ffffff93); }
+.attendanceInsights header,.attendanceLog > header { display:flex; justify-content:space-between; gap:16px; align-items:center; margin-bottom:20px; }
+.attendanceInsights header div > span,.attendanceLog header div > span { font-size:9px; color:#96a0b5; letter-spacing:.15em; }
+.attendanceInsights h2,.attendanceLog h2 { margin:8px 0 0; color:#34466a; font-size:18px; font-weight:600; }
+.attendanceInsights header > b { font-size:11px; font-weight:500; color:#8996b0; }
+.attendanceVenuePanel ul { list-style:none; margin:0; padding:0; max-height:415px; overflow-y:auto; scrollbar-width:thin; }
+.attendanceVenuePanel li + li { margin-top:6px; }
+.attendanceVenuePanel button { width:100%; display:flex; align-items:center; gap:14px; min-height:72px; padding:10px 12px; border:1px solid transparent; border-radius:13px; text-align:left; background:transparent; }
+.attendanceVenuePanel button:hover { background:#f1f4fc; }
+.attendanceVenuePanel button.isSelected { background:#eaeffd; border-color:#cdd8f4; }
+.attendanceVenueRank { flex:none; font:11px Arial,sans-serif; color:#b0b9ce; }
+.attendanceVenueName { display:grid; flex:1; min-width:0; gap:4px; }
+.attendanceVenueName strong { color:#526182; font-weight:500; font-size:13px; overflow-wrap:anywhere; }
+.attendanceVenueName small { color:#8b98b0; font-size:10px; }
+.attendanceVenueName i { height:3px; max-width:100%; min-width:3px; margin-top:3px; border-radius:99px; background:linear-gradient(90deg,#779ad5,#bdafe4); }
+.attendanceVenuePanel button > b { color:#7284b2; font:500 24px Arial,sans-serif; }
+.attendanceVenuePanel button > b small { font-size:10px; margin-left:4px; color:#9aa5bc; }
+.attendanceKeywordPanel > p { color:#8792a9; font-size:11px; line-height:1.9; }
+.attendanceKeywordCloud { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:18px; }
+.attendanceKeywordCloud button { display:flex; align-items:center; gap:12px; min-height:38px; max-width:100%; padding:9px 13px; border:1px solid #e6eafa; border-radius:12px; background:#f0f3fc8c; color:#7784a3; font-size:12px; text-align:left; }
+.attendanceKeywordCloud button b { font-size:10px; font-weight:500; color:#98a3bf; }
+.attendanceKeywordCloud button.isFrequent { padding:12px 15px; font-size:16px; color:#6474b4; background:#e9edfc; border-color:#e0e6fa; }
+.attendanceKeywordCloud button[aria-pressed="true"] { background:#6579bb; color:#fff; border-color:#6579bb; }
+.attendanceKeywordCloud button[aria-pressed="true"] b { color:#fff; }
+.attendanceMoreKeywords { margin-top:16px; color:#7d8eb1; font-size:12px; }
+.attendanceMoreKeywords summary { cursor:pointer; min-height:40px; padding:10px 0; }
+.attendanceLog { margin-top:24px; }
+.attendanceLog > header > span { font-size:11px; color:#8c98ae; }
+.attendanceLogFilters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.attendanceLogFilters button { min-height:36px; padding:8px 12px; border:1px solid #dce3f6; border-radius:10px; background:#edf1fc; color:#6b7eac; font-size:11px; }
+.attendanceLog ol { list-style:none; padding:0; margin:0; }
+.attendanceLog li { display:flex; gap:18px; }
+.attendanceStop { flex:none; display:grid; place-items:center; align-self:flex-start; width:34px; height:34px; border-radius:50%; margin-top:18px; background:#edf1fb; border:1px solid #dfe7f9; color:#8798bc; font:11px Arial,sans-serif; }
+.attendanceLog li > button { position:relative; min-width:0; flex:1; padding:18px 30px 18px 0; background:transparent; border:0; border-bottom:1px solid #e4e9f470; text-align:left; }
+.attendanceLog li:last-child > button { border-bottom:0; }
+.attendanceLog li > button:hover h3 { color:#627bc1; }
+.attendanceLog li small { display:block; color:#8a97b1; font-size:10px; }
+.attendanceLog h3 { font-size:14px; font-weight:500; line-height:1.75; margin:7px 0; color:#485a7c; }
+.attendanceLog li p { font-size:11px; color:#8190ac; margin:4px 0; line-height:1.8; }
+.attendanceLog li time { color:#a2acc0; font-size:10px; }
+.attendanceLogArrow { position:absolute; top:40%; right:5px; color:#9cafd3; font-size:18px; }
+.attendanceLoadMore { display:block; min-height:44px; margin:20px auto 0; padding:10px 20px; border:1px solid #dce4f5; border-radius:12px; background:#f2f5fd; color:#7287b2; font-size:12px; }
+.attendanceEmptyCopy { color:#929cb0; font-size:12px; line-height:1.9; margin:16px 0; }
+.attendancePhrases { margin-top:26px; padding:6px 22px; border:1px solid #ffffffb8; border-radius:18px; background:#ffffff5c; }
+.attendancePhrases summary { display:flex; align-items:center; gap:14px; min-height:48px; cursor:pointer; color:#7b89a5; font-size:12px; }
+.attendancePhrases summary::before { content:'›'; font-size:20px; transition:transform .2s; }
+.attendancePhrases[open] summary::before { transform:rotate(90deg); }
+.attendancePhrases summary b { margin-left:auto; font:11px Arial,sans-serif; color:#9aa7be; }
+.attendancePhrases > div { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; padding:10px 0 18px; }
+.attendancePhrases article { padding:18px; border:1px dashed #d3ddef; border-radius:14px; background:#ffffff45; }
+.attendancePhrases article > span { font-size:9px; color:#a3adc0; }
+.attendancePhrases article p { margin:15px 0; font-size:13px; color:#9da8bc; }
+.attendancePhrases article small { font-size:10px; color:#9da8bc; }
+.attendancePhrases article.isCollected { border-style:solid; background:linear-gradient(130deg,#f3f5ff,#f0eefa); }
+.attendancePhrases article.isCollected p { color:#6c7da5; }
+.attendancePrivacy { font-size:10px; line-height:1.9; color:#99a4bc; text-align:center; margin:24px 0 0; }
+.attendanceAtlas button:focus-visible,.attendanceAtlas a:focus-visible,.attendanceAtlas summary:focus-visible { outline:2px solid #7487cf; outline-offset:3px; }
+.attendanceAtlas .attendanceMapPanel button:focus-visible { outline-color:#bed9fb; }
+@keyframes attendanceRouteIn { from { opacity:0; stroke-dashoffset:30; } to { opacity:.9; stroke-dashoffset:0; } }
+@media(max-width:1100px) { .attendanceStats > div { padding:20px; } .attendanceInsights { grid-template-columns:1fr; } .attendanceVenuePanel ul { max-height:320px; } }
+@media(max-width:600px) {
+  .attendanceAtlas { padding-top:18px; }
+  .attendanceHeading { align-items:flex-start; flex-direction:column; gap:16px; margin-bottom:22px; }
+  .attendanceHeading h1 { font-size:29px; }
+  .attendanceHeading p { font-size:12px; }
+  .attendanceHeading .attendanceScheduleLink { min-height:40px; padding:9px 13px; font-size:11px; }
+  .attendanceStats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:20px; }
+  .attendanceStats > div { padding:18px; border-radius:18px; }
+  .attendanceStats strong { font-size:36px; margin-top:12px; }
+  .attendanceStats > div > span { font-size:11px; }
+  .attendanceStats p { font-size:9px; }
+  .attendanceMapHeader { padding:20px 18px 8px; gap:15px; }
+  .attendanceMapHeader h2 { font-size:17px; }
+  .attendanceFloorSwitch { width:100%; }
+  .attendanceAtlas .attendanceFloorSwitch button { flex:1; min-height:40px; }
+  .attendanceMapViewport { max-height:440px; }
+  .attendanceNodeLabel,.attendanceFloorTitle tspan { font-size:16px; }
+  .attendanceNodeCount { font-size:14px; }
+  .attendanceNodeHit { r:30px; }
+  .attendanceMapFooter { padding:12px 16px; gap:10px; }
+  .attendanceMapFooter > div:first-child { gap:10px; font-size:9px; }
+  .attendanceMapZoom button { min-height:36px; min-width:32px; padding:7px; font-size:10px; }
+  .attendanceMapDisclaimer { padding:13px 17px; font-size:9px; }
+  .attendanceWelcome { padding:17px; }
+  .attendanceWelcome strong { font-size:13px; }
+  .attendanceInsights { gap:18px; margin-top:20px; }
+  .attendanceVenuePanel,.attendanceKeywordPanel,.attendanceLog { padding:19px 17px; border-radius:20px; }
+  .attendanceInsights h2,.attendanceLog h2 { font-size:17px; }
+  .attendanceVenuePanel button { padding:10px 4px; gap:10px; }
+  .attendanceKeywordCloud { gap:8px; }
+  .attendanceKeywordCloud button { font-size:11px; min-height:40px; }
+  .attendanceKeywordCloud button.isFrequent { font-size:14px; }
+  .attendanceLog > header { flex-wrap:wrap; gap:10px; }
+  .attendanceLog li { gap:12px; }
+  .attendanceStop { width:28px; height:28px; font-size:10px; }
+  .attendanceLog h3 { font-size:13px; }
+  .attendancePhrases { padding:5px 16px; }
+  .attendancePhrases > div { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .attendancePhrases article { padding:14px; }
+}
+@media(prefers-reduced-motion:reduce) { .attendanceFlightRoutes path { animation:none; } .attendanceAtlas * { transition:none!important; } }

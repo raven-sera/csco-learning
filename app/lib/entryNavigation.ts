@@ -6,7 +6,7 @@ export function safeReturnPath(value: string | null, basePath = BASE_PATH): stri
   try {
     const url = new URL(value, 'https://csco.invalid');
     const pathname = localPathname(url.pathname, basePath);
-    if (url.origin !== 'https://csco.invalid' || !['/learning', '/favorites', '/schedule', '/library'].includes(pathname)) return '/learning';
+    if (url.origin !== 'https://csco.invalid' || !['/learning', '/favorites', '/schedule', '/library', '/atlas'].includes(pathname)) return '/learning';
     return pathname + url.search + url.hash;
   } catch { return '/learning'; }
 }

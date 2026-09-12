@@ -23,7 +23,7 @@ import {
   directions, fields, reports, searchMatch,
   sortReportsByDateTime, type Report,
 } from '../lib/reports';
-import { CHECK_IN_PHRASES, createCheckInRecord, isCheckInRecord, type CheckInRecord } from '../lib/checkIn';
+import { createCheckInRecord, isCheckInRecord, type CheckInRecord } from '../lib/checkIn';
 
 const PAGE_SIZE = 12;
 const DEFAULT_FIELD = '全部领域';
@@ -74,7 +74,7 @@ const INSTITUTIONS = Array.from(new Set(Array.from(INSTITUTIONS_BY_REPORT_ID.val
 
 const REPORT_BY_ID = new Map(reports.map((report) => [report.id, report]));
 
-type ActivePage = 'reports' | 'favorites' | 'schedule' | 'library';
+type ActivePage = 'reports' | 'favorites' | 'schedule' | 'library' | 'atlas';
 type ExportRequest = {
   reports:Report[];
   initialMode?:ExportMode;
@@ -396,11 +396,9 @@ function MySchedule({
   scheduledReports,
   attendedIds,
   celebratingReportId,
-  unlockedPhraseCount,
   onOpen,
   onLocate,
   onCheckIn,
-  onOpenAtlas,
   onRemove,
   onClear,
   onExportNotes,
@@ -410,11 +408,9 @@ function MySchedule({
   scheduledReports: Report[];
   attendedIds: ReadonlySet<number>;
   celebratingReportId: number | null;
-  unlockedPhraseCount: number;
   onOpen: (report: Report) => void;
   onLocate: (report?: Report) => void;
   onCheckIn: (report: Report) => void;
-  onOpenAtlas: () => void;
   onRemove: (report: Report) => void;
   onClear: () => void;
   onExportNotes: () => void;
@@ -452,7 +448,7 @@ function MySchedule({
           <button className="scheduleNotesExportButton" type="button" disabled={!scheduledReports.length} onClick={onExportNotes}>笔记批量导出 <b>PDF ↗</b></button>
           <button className="scheduleItineraryExportButton" type="button" disabled={!scheduledReports.length} onClick={onExportSchedule}>日程导出（表格 / 日历） <b>PDF ↗</b></button>
           <button className="calendarImportButton" type="button" disabled={!scheduledReports.some(report => reportInterval(report))} onClick={() => downloadCalendar(scheduledReports)}>导入系统日历 <b>ICS ↓</b></button>
-          <button className="scheduleAtlasButton" type="button" onClick={onOpenAtlas}>打卡语图鉴 <b>{unlockedPhraseCount}/{CHECK_IN_PHRASES.length} ↗</b></button>
+          <Link className="scheduleAtlasButton" href="/atlas">打开打卡图鉴 <b>{attendedIds.size} 次打卡 ↗</b></Link>
         </div>
       </div>
       <div className="scheduleCart">
@@ -557,22 +553,16 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
     clearSchedule,
   } = useCustomSchedule();
   const { records, attendedIds, markAttended } = useAttendance();
+  const attendanceRecords = useMemo(() => Object.values(records), [records]);
   const [checkInCard, setCheckInCard] = useState<{
     report: Report;
     record: CheckInRecord;
     isFresh: boolean;
   } | null>(null);
-  const [checkInAtlasOpen, setCheckInAtlasOpen] = useState(false);
   const [celebratingReportId, setCelebratingReportId] = useState<number | null>(null);
   const checkInAnimationTimerRef = useRef<number | null>(null);
   const [scheduleUploadFeedback, setScheduleUploadFeedback] = useState('');
   const scheduleUploadTimerRef = useRef<number | null>(null);
-  const unlockedPhraseCount = useMemo(
-    () => new Set(Object.values(records)
-      .map((record) => record.phrase)
-      .filter((phrase) => CHECK_IN_PHRASES.includes(phrase))).size,
-    [records],
-  );
 
   useEffect(() => () => {
     if (scheduleUploadTimerRef.current !== null) window.clearTimeout(scheduleUploadTimerRef.current);
@@ -805,10 +795,10 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
   }, [flushNotebook]);
 
   return (
-    <MycoShell activePage={initialPage} favoriteCount={favoriteReports.length} scheduleCount={scheduledReports.length} libraryCount={libraryEntries.length}
-      onMap={() => openVenueMap()} onAtlas={() => setCheckInAtlasOpen(true)}
-      onExport={() => setExportRequest({ reports: initialPage === 'schedule' ? [...scheduledReports] : initialPage === 'library' ? libraryEntries.flatMap(entry => { const report = REPORT_BY_ID.get(entry.reportId); return report ? [report] : []; }) : [...favoriteReports], clearFavoritesAfterExport: false })}>
-    <main id="top" className={initialPage === 'schedule' ? 'schedulePage' : initialPage === 'library' ? 'libraryPage' : 'reportsPage'}>
+    <MycoShell activePage={initialPage} favoriteCount={favoriteReports.length} scheduleCount={scheduledReports.length} libraryCount={libraryEntries.length} attendanceCount={attendanceRecords.length}
+      onMap={() => openVenueMap()}
+      onExport={() => setExportRequest({ reports: initialPage === 'schedule' ? [...scheduledReports] : initialPage === 'library' || initialPage === 'atlas' ? (initialPage === 'library' ? libraryEntries : attendanceRecords).flatMap(entry => { const report = REPORT_BY_ID.get(entry.reportId); return report ? [report] : []; }) : [...favoriteReports], clearFavoritesAfterExport: false })}>
+    <main id="top" className={initialPage === 'schedule' ? 'schedulePage' : initialPage === 'library' ? 'libraryPage' : initialPage === 'atlas' ? 'atlasPage' : 'reportsPage'}>
       {(initialPage === 'reports' || initialPage === 'favorites') && <>
       {initialPage === 'favorites' && <header className="mycoCollectionHeading"><span>MY COLLECTION</span><h1>收藏</h1><p>把值得关注的内容留下来，慢慢构建你的听会清单。</p></header>}
       <SearchPanel
@@ -888,14 +878,13 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
       </>}
 
       {initialPage === 'library' && <Suspense fallback={<p className="moduleLoading" role="status">正在打开个人图书馆…</p>}><PersonalLibrary onOpen={openReport} /></Suspense>}
+      {initialPage === 'atlas' && <Suspense fallback={<p className="moduleLoading" role="status">正在展开听会旅程…</p>}><CheckInAtlas records={attendanceRecords} onOpen={openReport} /></Suspense>}
       {initialPage === 'schedule' && (
         <MySchedule
           scheduledReports={scheduledReports}
           attendedIds={attendedIds}
           celebratingReportId={celebratingReportId}
-          unlockedPhraseCount={unlockedPhraseCount}
           onCheckIn={openCheckInCard}
-          onOpenAtlas={() => setCheckInAtlasOpen(true)}
           onOpen={openReport}
           onLocate={openVenueMap}
           onRemove={removeScheduledReport}
@@ -923,7 +912,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
           scheduled={scheduleSet.has(selected.id)}
           onToggleSchedule={toggleScheduledReport}
           options={noteOptions}
-          returnLabel={initialPage === 'library' ? '返回图书馆' : initialPage === 'schedule' ? '返回日程' : initialPage === 'favorites' ? '返回收藏' : '返回检索'}
+          returnLabel={initialPage === 'library' ? '返回图书馆' : initialPage === 'schedule' ? '返回日程' : initialPage === 'favorites' ? '返回收藏' : initialPage === 'atlas' ? '返回打卡图鉴' : '返回检索'}
         />
       )}
       {mapReport !== undefined && <Suspense fallback={<div className="venueOpening" role="status"><p>正在载入会场地图…</p><button onClick={closeVenueMap}>取消</button></div>}>
@@ -953,7 +942,6 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
         isFresh={checkInCard.isFresh}
         onClose={() => setCheckInCard(null)}
       />}
-      {checkInAtlasOpen && <CheckInAtlas records={Object.values(records)} onClose={() => setCheckInAtlasOpen(false)} />}
       </Suspense>
     </main>
     </MycoShell>

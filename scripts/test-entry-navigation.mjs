@@ -33,6 +33,7 @@ for (const base of ['', '/csco-learning']) {
   assert.equal(safeReturnPath('/schedule?day=2', base), '/schedule?day=2');
   assert.equal(safeReturnPath(base + '/library/#report-12?section=slides&slide=photo-abc', base), '/library#report-12?section=slides&slide=photo-abc');
   assert.equal(safeReturnPath(base + '/favorites/?q=肺癌#report-12', base), '/favorites?q=%E8%82%BA%E7%99%8C#report-12');
+  assert.equal(safeReturnPath(base + '/atlas/#report-12?section=text', base), '/atlas#report-12?section=text');
   for (const input of [null, '//evil.test/schedule', 'https://evil.test/schedule', '/\\evil.test/schedule',
     '/other/schedule', '/csco-learning-other/schedule', '/schedule/../evil', '/learning/deeper', '/favorites/deeper', 'javascript:alert(1)']) {
     assert.equal(safeReturnPath(input, base), '/learning');

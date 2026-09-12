@@ -29,6 +29,7 @@ jobs:
       - run: npm run test:search
       - run: npm run test:venues
       - run: npm run test:calendar
+      - run: npm run test:attendance
       - name: Export and verify website
         run: npm run build:github
         env:

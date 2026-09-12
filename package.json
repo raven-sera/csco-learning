@@ -11,6 +11,7 @@
     "test:search": "node scripts/test-search.mjs",
     "test:venues": "node scripts/test-venues.mjs",
     "test:calendar": "node scripts/test-calendar-export.mjs",
+    "test:attendance": "node scripts/test-attendance.mjs",
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",

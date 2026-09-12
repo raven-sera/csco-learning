@@ -23,7 +23,7 @@ import {
 } from '../lib/noteStorage';
 import { TextStyleKit } from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
-import { EditorContent, useEditor } from '@tiptap/react';
+import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { createPortal } from 'react-dom';
 import type { Report } from '../lib/reports';
@@ -32,6 +32,7 @@ import { BrandLockup, HuiduQrCallout } from './BrandLockup';
 import { renderPdf } from './ExportCenter';
 import { imageToPng } from '../lib/slideImages';
 import { NOTEBOOK_OPEN_EVENT, requestNotebook, type NotebookOpenOptions, type NotebookSection } from '../lib/libraryTypes';
+import NoteFormatTools, { NoteFormattingSelection, NoteToolIcon } from './NoteFormatTools';
 import './notebook.css';
 
 const MAX_RECORDING_MS = 10 * 60 * 1000;
@@ -165,6 +166,7 @@ const EDITOR_EXTENSIONS = [
   }),
   TextStyleKit,
   ColoredUnderline,
+  NoteFormattingSelection,
   Image.configure({
     allowBase64: true,
     HTMLAttributes: { class: 'noteEmbeddedImage' },
@@ -177,6 +179,7 @@ function NoteToolbar({ editor, onInsertImage, onInsertSlide, canLinkSlide }: {
   onInsertSlide: () => void;
   canLinkSlide: boolean;
 }) {
+  useEditorState({ editor, selector: ({ transactionNumber }) => transactionNumber });
   const heading = editor.isActive('heading', { level: 1 })
     ? '1'
     : editor.isActive('heading', { level: 2 })
@@ -185,7 +188,8 @@ function NoteToolbar({ editor, onInsertImage, onInsertSlide, canLinkSlide }: {
   const textStyle = editor.getAttributes('textStyle');
 
   return (
-    <div className="noteToolbar" role="toolbar" aria-label="笔记格式工具栏">
+    <div className="noteToolbar" role="toolbar" aria-label="笔记格式工具栏" onMouseDown={(event) => { if ((event.target as HTMLElement).closest('button')) event.preventDefault(); }}>
+      <div className="noteRibbonGroup noteRibbonTypography" role="group" aria-label="字体与段落">
       <label className="noteToolbarSelect">
         <span>标题</span>
         <select
@@ -239,24 +243,26 @@ function NoteToolbar({ editor, onInsertImage, onInsertSlide, canLinkSlide }: {
           ))}
         </select>
       </label>
-      <div className="noteToolbarButtons">
-        <button type="button" className={editor.isActive('bold') ? 'isActive' : ''} onClick={() => editor.chain().focus().toggleBold().run()} aria-label="粗体" title="粗体">B</button>
-        <button type="button" className={editor.isActive('italic') ? 'isActive' : ''} onClick={() => editor.chain().focus().toggleItalic().run()} aria-label="斜体" title="斜体"><i>I</i></button>
-        <button type="button" className={editor.isActive('underline') ? 'isActive' : ''} onClick={() => editor.chain().focus().toggleUnderline().run()} aria-label="下划线" title="下划线"><u>U</u></button>
-        <button type="button" className={editor.isActive('orderedList') ? 'isActive' : ''} onClick={() => editor.chain().focus().toggleOrderedList().run()} aria-label="有序列表" title="有序列表">1.</button>
-        <button type="button" className={editor.isActive('bulletList') ? 'isActive' : ''} onClick={() => editor.chain().focus().toggleBulletList().run()} aria-label="无序列表" title="无序列表">•</button>
       </div>
-      <div className="noteColorTools">
-        <label title="字体颜色"><span style={{ color: '#ed624f' }}>A</span><input type="color" defaultValue="#18251e" onChange={(event) => editor.chain().focus().setColor(event.target.value).run()} aria-label="字体颜色" /></label>
-        <label title="高亮颜色"><span className="highlightSwatch">A</span><input type="color" defaultValue="#fff09b" onChange={(event) => editor.chain().focus().setBackgroundColor(event.target.value).run()} aria-label="高亮颜色" /></label>
-        <label title="下划线颜色"><span className="underlineSwatch">U</span><input type="color" defaultValue="#ed624f" onChange={(event) => editor.chain().focus().setUnderline().updateAttributes('underline', { underlineColor: event.target.value }).run()} aria-label="下划线颜色" /></label>
+      <div className="noteRibbonGroup" role="group" aria-label="文字样式">
+        <div className="noteToolbarButtons">
+          <button type="button" className={editor.isActive('bold') ? 'isActive' : ''} aria-pressed={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} aria-label="粗体" title="粗体"><b>B</b></button>
+          <button type="button" className={editor.isActive('italic') ? 'isActive' : ''} aria-pressed={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} aria-label="斜体" title="斜体"><i>I</i></button>
+        </div>
+        <NoteFormatTools editor={editor} />
       </div>
-      <div className="noteToolbarButtons noteToolbarUtility">
-        <button type="button" onClick={onInsertImage} aria-label="在光标位置插入图片" title="插入图片">图片＋</button>
-        <button type="button" onClick={onInsertSlide} disabled={!canLinkSlide} title="插入当前 PPT 的固定链接，排序或移动后仍可定位">引用当前 PPT</button>
-        <button type="button" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} aria-label="清除格式" title="清除格式">清格式</button>
-        <button type="button" disabled={!editor.can().chain().focus().undo().run()} onClick={() => editor.chain().focus().undo().run()} aria-label="撤销" title="撤销">↶</button>
-        <button type="button" disabled={!editor.can().chain().focus().redo().run()} onClick={() => editor.chain().focus().redo().run()} aria-label="重做" title="重做">↷</button>
+      <div className="noteRibbonGroup" role="group" aria-label="列表">
+        <div className="noteToolbarButtons">
+          <button type="button" className={editor.isActive('orderedList') ? 'isActive' : ''} aria-pressed={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} aria-label="有序列表" title="有序列表"><NoteToolIcon name="ordered" /></button>
+          <button type="button" className={editor.isActive('bulletList') ? 'isActive' : ''} aria-pressed={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} aria-label="无序列表" title="无序列表"><NoteToolIcon name="bullet" /></button>
+        </div>
+      </div>
+      <div className="noteToolbarButtons noteToolbarUtility" role="group" aria-label="插入与编辑">
+        <button type="button" onClick={onInsertImage} aria-label="在光标位置插入图片" title="插入图片"><NoteToolIcon name="image" /><span>图片</span></button>
+        <button type="button" onClick={onInsertSlide} disabled={!canLinkSlide} title="插入当前 PPT 的固定链接，排序或移动后仍可定位"><NoteToolIcon name="link" /><span>引用 PPT</span></button>
+        <button type="button" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} aria-label="清除格式" title="清除格式"><NoteToolIcon name="clear" /><span>清除格式</span></button>
+        <button type="button" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()} aria-label="撤销" title="撤销"><NoteToolIcon name="undo" /></button>
+        <button type="button" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()} aria-label="重做" title="重做"><NoteToolIcon name="redo" /></button>
       </div>
     </div>
   );
