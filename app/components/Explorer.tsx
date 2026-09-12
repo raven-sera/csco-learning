@@ -4,8 +4,8 @@ import { Fragment, lazy, memo, Suspense, useCallback, useDeferredValue, useEffec
 import Link from 'next/link';
 import { useDialog } from '../lib/useDialog';
 import { useLocalRecord } from '../lib/useLocalRecord';
-import { downloadCalendar, nextScheduledReport, reportInterval, scheduleConflicts } from '../lib/scheduleTools';
-import CalendarSchedule from './CalendarSchedule';
+import MySchedule from './MySchedule';
+import FavoriteCollection from './FavoriteCollection';
 const VenueNavigator = lazy(() => import('./VenueNavigator'));
 const CheckInCard = lazy(() => import('./CheckInCard'));
 const CheckInAtlas = lazy(() => import('./CheckInAtlas'));
@@ -31,6 +31,7 @@ const DEFAULT_DIRECTION = '全部方向';
 const DEFAULT_TIME_SLOT = '全部时间';
 const DEFAULT_VENUE = '全部场地';
 const DEFAULT_UNIT_TYPE = '全部单位';
+const DEFAULT_SEARCH = { query: '', timeSlot: DEFAULT_TIME_SLOT, venue: DEFAULT_VENUE, unitType: DEFAULT_UNIT_TYPE, field: DEFAULT_FIELD, direction: DEFAULT_DIRECTION };
 const UNIT_TYPES = ['高校', '企业'] as const;
 const FAVORITES_KEY = 'csco-favorite-reports';
 const SCHEDULE_KEY = 'csco-custom-schedule-reports';
@@ -102,15 +103,6 @@ function notebookOptions(hash: string): NotebookOpenOptions {
   };
 }
 
-function useNextScheduledReport(input: readonly Report[]) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 30000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const report = nextScheduledReport(input, now);
-  return { report, ongoing: Boolean(report && reportInterval(report)!.start <= now) };
-}
 
 const ReportCard = memo(function ReportCard({
   report,
@@ -288,72 +280,60 @@ function useAttendance() {
 
 
 
-function MobileActionHub({ scheduledReports, onOpen, onLocate }:{scheduledReports:Report[];onOpen:(report:Report)=>void;onLocate:(report:Report)=>void}) {
-  const { report: nextReport, ongoing } = useNextScheduledReport(scheduledReports);
-  return (
-    <section className="mobileActionHub" aria-label="手机端重点功能">
-      <article className="mobileNextReport">
-        <header><span>{ongoing ? '正在进行' : scheduledReports.length && !nextReport ? '已安排的报告均已结束' : '我的下一场'}</span><Link href="/schedule">{scheduledReports.length} 场日程 ↗</Link></header>
-        {nextReport ? <>
-          <small>{nextReport.dateTime.replace('2026-', '')}</small>
-          <h2>{nextReport.sourceTitle}</h2>
-          <p>{nextReport.speaker} · {nextReport.location}</p>
-          <div><button onClick={() => onOpen(nextReport)}>查看详情</button><button onClick={() => onLocate(nextReport)} aria-haspopup="dialog">查看会场</button><button onClick={() => requestNotebook(nextReport.id, {section:'slides', mode:'edit', capture:true})}>拍 PPT</button><button onClick={() => requestNotebook(nextReport.id, {section:'text', mode:'edit'})}>写笔记</button></div>
-        </> : <>
-          <h2>{scheduledReports.length ? '听会结束，回看你的收获' : '先挑选你准备参加的报告'}</h2>
-          <p>在报告卡片点击“加入日程”，这里会直接显示下一场。</p>
-          <Link className="mobileNextEmptyAction" href="/learning#reports">浏览会议内容 →</Link>
-        </>}
-      </article>
-      <Link className="librarySpotlight" href="/library">
-        <span>PERSONAL LIBRARY</span><strong>回看我的听会资料</strong>
-        <p>文字、PPT 与录音按报告自动归档。</p><b>打开个人图书馆 →</b>
-      </Link>
-    </section>
-  );
-}
 
 
 function SearchPanel({
-  query, timeSlot, venue, unitType, field, direction, updating, hasResults,
+  query, timeSlot, venue, unitType, field, direction, updating, hasResults, compact = false,
   onQueryChange, onTimeSlotChange, onVenueChange, onUnitTypeChange,
-  onFieldChange, onDirectionChange, onReset, onSearch,
+  onFieldChange, onDirectionChange, onReset, onSearch, onBrowseAll,
 }: {
   query: string; timeSlot: string; venue: string; unitType: string; field: string; direction: string;
-  updating: boolean; hasResults: boolean;
+  updating: boolean; hasResults: boolean; compact?: boolean;
   onQueryChange: (value: string) => void; onTimeSlotChange: (value: string) => void;
   onVenueChange: (value: string) => void; onUnitTypeChange: (value: string) => void;
   onFieldChange: (value: string) => void; onDirectionChange: (value: string) => void;
-  onReset: () => void; onSearch: () => void;
+  onReset: () => void; onSearch: () => void; onBrowseAll: () => void;
 }) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  useDialog('.mycoFilterDialog', () => setFiltersOpen(false), filtersOpen);
   const activeFilterCount = [timeSlot !== DEFAULT_TIME_SLOT, venue !== DEFAULT_VENUE, unitType !== DEFAULT_UNIT_TYPE, field !== DEFAULT_FIELD, direction !== DEFAULT_DIRECTION].filter(Boolean).length;
-  return <section className={`mycoSearch ${hasResults ? 'hasResults' : ''}`} aria-label="报告检索">
-    <div className="mycoSearchIntro">
+  const filters = <div className="filterRow">
+    <label><span>时间</span><select value={timeSlot} onChange={event => onTimeSlotChange(event.target.value)}><option>{DEFAULT_TIME_SLOT}</option>{TIME_SLOTS.map(item => <option key={item}>{item}</option>)}</select></label>
+    <label><span>场地</span><select value={venue} onChange={event => onVenueChange(event.target.value)}><option>{DEFAULT_VENUE}</option>{VENUES.map(item => <option key={item}>{item}</option>)}</select></label>
+    <label><span>单位</span><select value={unitType} onChange={event => onUnitTypeChange(event.target.value)}><option>{DEFAULT_UNIT_TYPE}</option><optgroup label="按单位类型">{UNIT_TYPES.map(item => <option key={item}>{item}</option>)}</optgroup><optgroup label="按具体单位">{INSTITUTIONS.map(item => <option key={item}>{item}</option>)}</optgroup></select></label>
+    <label><span>领域</span><select value={field} onChange={event => onFieldChange(event.target.value)}><option>{DEFAULT_FIELD}</option>{fields.map(item => <option key={item}>{item}</option>)}</select></label>
+    <label><span>研究方向</span><select value={direction} onChange={event => onDirectionChange(event.target.value)}><option>{DEFAULT_DIRECTION}</option>{directions.map(item => <option key={item}>{item}</option>)}</select></label>
+  </div>;
+  return <section className={`mycoSearch ${hasResults ? 'hasResults' : ''}${compact ? ' isCompactSearch' : ''}`} aria-label={compact ? '检索收藏' : '报告检索'}>
+    {!compact && <div className="mycoSearchIntro">
       <span className="mycoSearchEyebrow">让每一次听会，都成为自己的收获</span>
       <h1>My<span>CO</span><i aria-hidden="true" /></h1>
       <p>My CSCO · 你的会议学习空间</p>
-    </div>
+    </div>}
     <form className="searchDock" role="search" onSubmit={event => { event.preventDefault(); onSearch(); }}>
       <div className="searchField">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
-        <input id="report-search" aria-label="检索会议内容" type="search" value={query} onChange={event => onQueryChange(event.target.value)} placeholder="搜索报告、报告人、单位或关键词" autoComplete="off" />
+        <input id="report-search" aria-label={compact ? '检索收藏内容' : '检索会议内容'} type="search" enterKeyHint="search" value={query} onChange={event => onQueryChange(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && event.nativeEvent.isComposing) event.preventDefault(); }} placeholder={compact ? '在收藏中搜索' : '搜索报告、报告人、单位或关键词'} autoComplete="off" />
         {query && <button type="button" className="mycoSearchClear" onClick={() => onQueryChange('')} aria-label="清空搜索">×</button>}
         <button type="submit" className="mycoSearchSubmit">搜索<span aria-hidden="true"> →</span></button>
+        {compact && <button type="button" className="mycoFilterToggle" aria-label={`筛选收藏${activeFilterCount ? `，已选 ${activeFilterCount} 项` : ''}`} aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>筛选{activeFilterCount > 0 && <b>{activeFilterCount}</b>}</button>}
       </div>
-      <div className="filterRow">
-        <label><span>时间</span><select value={timeSlot} onChange={event => onTimeSlotChange(event.target.value)}><option>{DEFAULT_TIME_SLOT}</option>{TIME_SLOTS.map(item => <option key={item}>{item}</option>)}</select></label>
-        <label><span>场地</span><select value={venue} onChange={event => onVenueChange(event.target.value)}><option>{DEFAULT_VENUE}</option>{VENUES.map(item => <option key={item}>{item}</option>)}</select></label>
-        <label><span>单位</span><select value={unitType} onChange={event => onUnitTypeChange(event.target.value)}><option>{DEFAULT_UNIT_TYPE}</option><optgroup label="按单位类型">{UNIT_TYPES.map(item => <option key={item}>{item}</option>)}</optgroup><optgroup label="按具体单位">{INSTITUTIONS.map(item => <option key={item}>{item}</option>)}</optgroup></select></label>
-        <label><span>领域</span><select value={field} onChange={event => onFieldChange(event.target.value)}><option>{DEFAULT_FIELD}</option>{fields.map(item => <option key={item}>{item}</option>)}</select></label>
-        <label><span>研究方向</span><select value={direction} onChange={event => onDirectionChange(event.target.value)}><option>{DEFAULT_DIRECTION}</option>{directions.map(item => <option key={item}>{item}</option>)}</select></label>
-      </div>
-      <div className="mycoSearchHint">
-        <span aria-live="polite">{updating ? '正在检索…' : activeFilterCount ? `已选 ${activeFilterCount} 项筛选 · 精确匹配优先` : '中英文均可检索 · 精确匹配优先'}</span>
+      {!compact && <>{filters}<div className="mycoSearchHint">
+        <span aria-live="polite">{updating ? '正在检索…' : activeFilterCount ? `已选 ${activeFilterCount} 项筛选 · 按搜索应用` : '中英文均可检索 · 精确匹配优先'}</span>
         {(query || activeFilterCount > 0) && <button type="button" onClick={onReset}>重置筛选</button>}
-      </div>
+      </div></>}
     </form>
     {!hasResults && <div className="mycoSearchSuggestions"><span>试试搜索</span>{['肺癌', '免疫治疗', '葛睿'].map(item => <button key={item} onClick={() => onQueryChange(item)}>{item}<span aria-hidden="true">↗</span></button>)}</div>}
-    {!hasResults && <p className="mycoSearchCatalog">{reports.length} 场会议内容，等你发现。<button onClick={onSearch}>浏览全部报告 →</button></p>}
+    {!hasResults && <p className="mycoSearchCatalog">{reports.length} 场会议内容，等你发现。<button onClick={onBrowseAll}>浏览全部报告 →</button></p>}
+    {filtersOpen && <div className="mycoFilterOverlay" onClick={event => { if (event.target === event.currentTarget) setFiltersOpen(false); }}>
+      <div className="mycoFilterDialog" role="dialog" aria-modal="true" aria-labelledby="myco-filter-title">
+        <form onSubmit={event => { event.preventDefault(); onSearch(); setFiltersOpen(false); }}>
+          <header><h2 id="myco-filter-title">筛选收藏</h2><button type="button" onClick={() => setFiltersOpen(false)} aria-label="关闭筛选">×</button></header>
+          {filters}
+          <footer><button type="button" onClick={onReset}>重置筛选</button><button type="submit">搜索并应用</button></footer>
+        </form>
+      </div>
+    </div>}
   </section>;
 }
 
@@ -392,141 +372,12 @@ function Pagination({
   );
 }
 
-function MySchedule({
-  scheduledReports,
-  attendedIds,
-  celebratingReportId,
-  onOpen,
-  onLocate,
-  onCheckIn,
-  onRemove,
-  onClear,
-  onExportNotes,
-  onExportSchedule,
-  noteIds,
-}: {
-  scheduledReports: Report[];
-  attendedIds: ReadonlySet<number>;
-  celebratingReportId: number | null;
-  onOpen: (report: Report) => void;
-  onLocate: (report?: Report) => void;
-  onCheckIn: (report: Report) => void;
-  onRemove: (report: Report) => void;
-  onClear: () => void;
-  onExportNotes: () => void;
-  onExportSchedule: () => void;
-  noteIds: ReadonlySet<number>;
-}) {
-  const [scheduleView, setScheduleView] = useState<'calendar' | 'list'>('list');
-  const conflicts = useMemo(() => scheduleConflicts(scheduledReports), [scheduledReports]);
-  const groups = scheduledReports.reduce((result, report) => {
-    const day = report.dateTime.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? '日期待确认';
-    result.set(day, [...(result.get(day) ?? []), report]);
-    return result;
-  }, new Map<string, Report[]>());
-  const { report: nextReport } = useNextScheduledReport(scheduledReports);
-  const attendedCount = scheduledReports.reduce(
-    (count, report) => count + Number(attendedIds.has(report.id)),
-    0,
-  );
-
-  return (
-    <section className="mySchedule" id="schedule" aria-labelledby="my-schedule-title">
-      <div className="scheduleSummary">
-        <span className="sectionNo">B.</span>
-        <p>MY CUSTOM ITINERARY</p>
-        <h2 id="my-schedule-title">我的自定义日程</h2>
-        <p className="scheduleDescription desktopScheduleCopy">把想听的报告放进 9.17–9.19 三天会议日历。到场后点击“打卡”，日程颜色会同步点亮，并生成一张可保存的专属卡片。</p>
-        <p className="scheduleDescription mobileScheduleCopy">到场后点击报告旁的“打卡”，点亮日程并保存你的 CSCO 现场卡片。</p>
-        <dl>
-          <div><dt>{scheduledReports.length}</dt><dd>场已加入</dd></div>
-          <div><dt>{groups.size}</dt><dd>个会议日</dd></div>
-          <div><dt>{attendedCount}</dt><dd>场已打卡</dd></div>
-        </dl>
-        <div className="scheduleActions" aria-label="我的日程操作">
-          <button className="scheduleClearButton" type="button" disabled={!scheduledReports.length} onClick={onClear}>一键清空 <b>×</b></button>
-          <button className="scheduleNotesExportButton" type="button" disabled={!scheduledReports.length} onClick={onExportNotes}>笔记批量导出 <b>PDF ↗</b></button>
-          <button className="scheduleItineraryExportButton" type="button" disabled={!scheduledReports.length} onClick={onExportSchedule}>日程导出（表格 / 日历） <b>PDF ↗</b></button>
-          <button className="calendarImportButton" type="button" disabled={!scheduledReports.some(report => reportInterval(report))} onClick={() => downloadCalendar(scheduledReports)}>导入系统日历 <b>ICS ↓</b></button>
-          <Link className="scheduleAtlasButton" href="/atlas">打开打卡图鉴 <b>{attendedIds.size} 次打卡 ↗</b></Link>
-        </div>
-      </div>
-      <div className="scheduleCart">
-        {conflicts.size > 0 && <details className="scheduleConflict"><summary>{conflicts.size} 场报告存在时间重叠，查看冲突</summary><p>这些报告的时间有交集，请根据会场和优先级取舍。</p>{scheduledReports.filter(report => conflicts.has(report.id)).map(report => <button key={report.id} onClick={() => onOpen(report)}>{report.dateTime.replace('2026-', '')} · {report.sourceTitle}</button>)}</details>}
-        <header>
-          <div>
-            <span>MY SCHEDULE</span>
-            <strong>{scheduleView === 'calendar' ? '三日听会日历' : '会议时间清单'}</strong>
-          </div>
-          <div className="scheduleCartTools">
-            <b>{scheduleView === 'calendar' ? '9.17–9.19 · 内容自适应' : '已自动按会议时间排序'}</b>
-            <div className="scheduleViewSwitch" role="group" aria-label="日程呈现方式">
-              <button type="button" aria-pressed={scheduleView === 'calendar'} onClick={() => setScheduleView('calendar')}>日历视图</button>
-              <button type="button" aria-pressed={scheduleView === 'list'} onClick={() => setScheduleView('list')}>清单视图</button>
-              <button type="button" onClick={() => onLocate()} aria-haspopup="dialog">会场地图</button>
-            </div>
-          </div>
-        </header>
-        {scheduledReports.length === 0 ? (
-          <div className="scheduleEmpty"><Link className="emptyScheduleLink" href="/learning#reports">去挑选报告 →</Link>
-            <span aria-hidden>＋</span>
-            <strong>日程里还没有报告</strong>
-            <p className="desktopScheduleCopy">在报告看板点击“加入日程”，或将收藏批量加入。</p>
-            <p className="mobileScheduleCopy">在报告列表点击“加入日程”，这里会自动生成你的三天听会日历。</p>
-          </div>
-        ) : scheduleView === 'calendar' ? (
-          <CalendarSchedule
-            reports={scheduledReports}
-            onOpen={onOpen}
-            onLocate={onLocate}
-            onCheckIn={onCheckIn}
-            attendedIds={attendedIds}
-            celebratingReportId={celebratingReportId}
-          />
-        ) : (
-          <div className="scheduleDays">
-            {Array.from(groups).map(([day, dayReports]) => (
-              <section className="scheduleDayGroup" key={day}>
-                <header><time>{day === '日期待确认' ? day : day.replaceAll('-', '.')}</time><span>{dayReports.length} 场</span></header>
-                <div>
-                  {dayReports.map((report) => (
-                    <article className={`scheduleItem ${report.id === nextReport?.id ? 'isNext' : ''} ${attendedIds.has(report.id) ? 'isAttended' : ''} ${celebratingReportId === report.id ? 'isCelebrating' : ''}`} key={report.id}>
-                      <time>{report.dateTime.replace(`${day} `, '')}</time>
-                      <button className="scheduleItemOpen" type="button" onClick={() => onOpen(report)}>
-                        <small>{report.kind}{report.session ? ` · ${report.session}` : ''}</small>
-                        <strong>{report.sourceTitle}</strong>
-                        <span>{report.speaker} · {report.institution}</span>
-                        <span className="scheduleItemVenue">{report.location}</span>
-                      </button>
-                      <div className="scheduleItemActions">
-                        <button className="venueLocateButton" type="button" onClick={() => onLocate(report)} aria-label={`查看会场：${report.sourceTitle}`} aria-haspopup="dialog">查看会场</button>
-                        <button className="scheduleItemCheckIn" type="button" aria-pressed={attendedIds.has(report.id)} onClick={() => onCheckIn(report)}>{attendedIds.has(report.id) ? '✓ 已打卡' : '✦ 现场打卡'}</button>
-                        <button className="scheduleItemNotes" type="button" onClick={() => requestNotebook(report.id, {section:'text',mode:'edit'})} aria-label={`写笔记：${report.sourceTitle}`}>{noteIds.has(report.id) ? '继续记录' : '记笔记'}</button>
-                        <button className="scheduleItemNotes" type="button" onClick={() => requestNotebook(report.id, {section:'slides',mode:'edit',capture:true})} aria-label={`拍摄PPT：${report.sourceTitle}`}>拍 PPT</button>
-                        <button className="scheduleItemRemove" type="button" onClick={() => onRemove(report)} aria-label={`从我的日程移除：${report.sourceTitle}`}>移除</button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
 
 export default function Explorer({ initialPage = 'reports' }: { initialPage?: ActivePage }) {
-  const [query, setQuery] = useState('');
-  const [browseAll, setBrowseAll] = useState(false);
+  const [draft, setDraft] = useState(DEFAULT_SEARCH);
+  const [submitted, setSubmitted] = useState<typeof DEFAULT_SEARCH | null>(null);
+  const criteria = useDeferredValue(submitted ?? DEFAULT_SEARCH);
   const [sortOrder, setSortOrder] = useState<'relevance' | 'time'>('relevance');
-  const deferredQuery = useDeferredValue(query);
-  const [timeSlot, setTimeSlot] = useState(DEFAULT_TIME_SLOT);
-  const [venue, setVenue] = useState(DEFAULT_VENUE);
-  const [unitType, setUnitType] = useState(DEFAULT_UNIT_TYPE);
-  const [field, setField] = useState(DEFAULT_FIELD);
-  const [direction, setDirection] = useState(DEFAULT_DIRECTION);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Report | null>(null);
   const [noteOptions, setNoteOptions] = useState<NotebookOpenOptions>({});
@@ -608,19 +459,19 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
     clearSchedule();
   }, [clearSchedule, scheduledReports.length]);
 
-  const showResults = initialPage === 'favorites' || browseAll || Boolean(query.trim()) || timeSlot !== DEFAULT_TIME_SLOT || venue !== DEFAULT_VENUE || unitType !== DEFAULT_UNIT_TYPE || field !== DEFAULT_FIELD || direction !== DEFAULT_DIRECTION;
+  const showResults = initialPage === 'favorites' || submitted !== null;
   const ranked = useMemo(() => {
     if (!showResults || (initialPage !== 'reports' && initialPage !== 'favorites')) return [];
     const matches: { report: Report; score: number; kind: 'exact' | 'similar' | 'none' }[] = [];
-    const hasQuery = Boolean(deferredQuery.trim());
+    const hasQuery = Boolean(criteria.query.trim());
     for (const report of reports) {
       if (initialPage === 'favorites' && !favoriteSet.has(report.id)) continue;
-      if (timeSlot !== DEFAULT_TIME_SLOT && TIME_SLOT_BY_REPORT_ID.get(report.id) !== timeSlot) continue;
-      if (venue !== DEFAULT_VENUE && report.location !== venue) continue;
-      if (unitType !== DEFAULT_UNIT_TYPE && !INSTITUTIONS_BY_REPORT_ID.get(report.id)?.includes(unitType) && !UNIT_TYPES_BY_REPORT_ID.get(report.id)?.includes(unitType as (typeof UNIT_TYPES)[number])) continue;
-      if (field !== DEFAULT_FIELD && report.field !== field) continue;
-      if (direction !== DEFAULT_DIRECTION && !report.directions.includes(direction)) continue;
-      const match = searchMatch(report, deferredQuery);
+      if (criteria.timeSlot !== DEFAULT_TIME_SLOT && TIME_SLOT_BY_REPORT_ID.get(report.id) !== criteria.timeSlot) continue;
+      if (criteria.venue !== DEFAULT_VENUE && report.location !== criteria.venue) continue;
+      if (criteria.unitType !== DEFAULT_UNIT_TYPE && !INSTITUTIONS_BY_REPORT_ID.get(report.id)?.includes(criteria.unitType) && !UNIT_TYPES_BY_REPORT_ID.get(report.id)?.includes(criteria.unitType as (typeof UNIT_TYPES)[number])) continue;
+      if (criteria.field !== DEFAULT_FIELD && report.field !== criteria.field) continue;
+      if (criteria.direction !== DEFAULT_DIRECTION && !report.directions.includes(criteria.direction)) continue;
+      const match = searchMatch(report, criteria.query);
       if (match.kind !== 'none') matches.push({ report, ...match });
     }
     matches.sort((a, b) => {
@@ -630,7 +481,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
       return (hasQuery ? b.score - a.score : 0) || a.report.id - b.report.id;
     });
     return matches;
-  }, [showResults, initialPage, deferredQuery, timeSlot, venue, unitType, field, direction, sortOrder, favoriteSet]);
+  }, [showResults, initialPage, criteria, sortOrder, favoriteSet]);
   const filtered = ranked.map(item => item.report);
   const exactCount = ranked.reduce((count, item) => count + Number(item.kind === 'exact'), 0);
 
@@ -639,7 +490,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
   const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const visibleRanks = ranked.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const firstSimilarIndex = visibleRanks.findIndex(item => item.kind === 'similar');
-  const updating = query !== deferredQuery;
+  const updating = criteria !== (submitted ?? DEFAULT_SEARCH);
   const visibleFavoriteCount = visible.reduce(
     (count, report) => count + Number(favoriteSet.has(report.id)),
     0,
@@ -647,22 +498,23 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
   const allVisibleFavorited = visible.length > 0 && visibleFavoriteCount === visible.length;
 
   const resetFilters = useCallback(() => {
-    setQuery('');
-    setBrowseAll(false);
-    setTimeSlot(DEFAULT_TIME_SLOT);
-    setVenue(DEFAULT_VENUE);
-    setUnitType(DEFAULT_UNIT_TYPE);
-    setField(DEFAULT_FIELD);
-    setDirection(DEFAULT_DIRECTION);
+    setDraft(DEFAULT_SEARCH);
+    setSubmitted(null);
+    setPage(1);
+  }, []);
+
+  const browseReports = useCallback(() => {
+    setDraft(DEFAULT_SEARCH);
+    setSubmitted(DEFAULT_SEARCH);
     setPage(1);
   }, []);
 
   const changePage = useCallback((nextPage: number) => {
     setPage(Math.min(Math.max(nextPage, 1), totalPages));
-    requestAnimationFrame(() => {
+    if (initialPage === 'reports') requestAnimationFrame(() => {
       document.getElementById('reports')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-  }, [totalPages]);
+  }, [initialPage, totalPages]);
 
   const mayLeaveNotebook = useCallback(() => {
     if (!recordingActive.current) return true;
@@ -794,42 +646,61 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
     };
   }, [flushNotebook]);
 
+  const searchPanel = <SearchPanel
+    {...draft}
+    compact={initialPage === 'favorites'}
+    hasResults={showResults}
+    updating={updating}
+    onQueryChange={query => setDraft(value => ({ ...value, query }))}
+    onTimeSlotChange={timeSlot => setDraft(value => ({ ...value, timeSlot }))}
+    onVenueChange={venue => setDraft(value => ({ ...value, venue }))}
+    onUnitTypeChange={unitType => setDraft(value => ({ ...value, unitType }))}
+    onFieldChange={field => setDraft(value => ({ ...value, field }))}
+    onDirectionChange={direction => setDraft(value => ({ ...value, direction }))}
+    onReset={resetFilters}
+    onSearch={() => { setSubmitted(draft); setPage(1); }}
+    onBrowseAll={browseReports}
+  />;
+
   return (
-    <MycoShell activePage={initialPage} favoriteCount={favoriteReports.length} scheduleCount={scheduledReports.length} libraryCount={libraryEntries.length} attendanceCount={attendanceRecords.length}
+    <MycoShell activePage={initialPage} fitViewport={initialPage === 'favorites' || initialPage === 'schedule'} favoriteCount={favoriteReports.length} scheduleCount={scheduledReports.length} libraryCount={libraryEntries.length} attendanceCount={attendanceRecords.length}
       onMap={() => openVenueMap()}
       onExport={() => setExportRequest({ reports: initialPage === 'schedule' ? [...scheduledReports] : initialPage === 'library' || initialPage === 'atlas' ? (initialPage === 'library' ? libraryEntries : attendanceRecords).flatMap(entry => { const report = REPORT_BY_ID.get(entry.reportId); return report ? [report] : []; }) : [...favoriteReports], clearFavoritesAfterExport: false })}>
-    <main id="top" className={initialPage === 'schedule' ? 'schedulePage' : initialPage === 'library' ? 'libraryPage' : initialPage === 'atlas' ? 'atlasPage' : 'reportsPage'}>
-      {(initialPage === 'reports' || initialPage === 'favorites') && <>
-      {initialPage === 'favorites' && <header className="mycoCollectionHeading"><span>MY COLLECTION</span><h1>收藏</h1><p>把值得关注的内容留下来，慢慢构建你的听会清单。</p></header>}
-      <SearchPanel
-        query={query}
-        timeSlot={timeSlot}
-        venue={venue}
-        unitType={unitType}
-        field={field}
-        direction={direction}
-        hasResults={showResults}
-        updating={updating}
-        onQueryChange={(value) => { setQuery(value); setPage(1); }}
-        onTimeSlotChange={(value) => { setTimeSlot(value); setPage(1); }}
-        onVenueChange={(value) => { setVenue(value); setPage(1); }}
-        onUnitTypeChange={(value) => { setUnitType(value); setPage(1); }}
-        onFieldChange={(value) => { setField(value); setPage(1); }}
-        onDirectionChange={(value) => { setDirection(value); setPage(1); }}
+    <main id="top" className={initialPage === 'schedule' ? 'schedulePage' : initialPage === 'favorites' ? 'favoritesPage' : initialPage === 'library' ? 'libraryPage' : initialPage === 'atlas' ? 'atlasPage' : 'reportsPage'}>
+      {initialPage === 'favorites' && <FavoriteCollection
+        search={searchPanel}
+        items={visibleRanks}
+        total={filtered.length}
+        exactCount={exactCount}
+        hasQuery={Boolean(criteria.query.trim())}
+        favoriteCount={favoriteReports.length}
+        page={currentPage}
+        totalPages={totalPages}
+        scheduleSet={scheduleSet}
+        sortOrder={sortOrder}
+        scheduleUploadFeedback={scheduleUploadFeedback}
+        onPageChange={changePage}
+        onSortChange={order => { setSortOrder(order); setPage(1); }}
+        onOpen={openReport}
+        onToggleFavorite={toggleFavorite}
+        onToggleSchedule={toggleScheduledReport}
+        onRemovePage={() => setReportsFavorite(visible, false)}
+        onAddAllToSchedule={uploadFavoritesToSchedule}
+        onExport={() => setExportRequest({ reports: [...favoriteReports], clearFavoritesAfterExport: false })}
         onReset={resetFilters}
-        onSearch={() => { setBrowseAll(true); setPage(1); }}
-      />
+      />}
+      {initialPage === 'reports' && <>
+      {searchPanel}
 
       {showResults && <>
       <div className="collectionToolbar">
-        <p className="mycoResultCount" role="status">{deferredQuery.trim() ? <>精确匹配 <b>{exactCount}</b><span>相似选项 <b>{filtered.length - exactCount}</b></span></> : <>共 <b>{filtered.length}</b> 场{initialPage === 'favorites' ? '收藏' : '会议内容'}</>}</p>
+        <p className="mycoResultCount" role="status">{criteria.query.trim() ? <>精确匹配 <b>{exactCount}</b><span>相似选项 <b>{filtered.length - exactCount}</b></span></> : <>共 <b>{filtered.length}</b> 场会议内容</>}</p>
         <label className="sortSelect">排序<select aria-label="报告排序" value={sortOrder} onChange={event => { setSortOrder(event.target.value as 'relevance' | 'time'); setPage(1); }}><option value="relevance">相关优先</option><option value="time">会议时间</option></select></label>
-        {initialPage === 'favorites' && favoriteReports.length > 0 && <div className="collectionActions"><button onClick={uploadFavoritesToSchedule}>{scheduleUploadFeedback || '全部加入日程'}</button><button onClick={() => setExportRequest({reports:[...favoriteReports],clearFavoritesAfterExport:false})}>导出收藏</button></div>}
       </div>
 
       <section className="reportSection" id="reports" aria-busy={updating}>
         <div className="sectionHeading">
-          <div><h2>{initialPage === 'favorites' ? '我的收藏' : '检索结果'}</h2></div>
+          <div><h2>检索结果</h2></div>
           <div className="sectionHeadingActions">
             <p>第 {currentPage} / {totalPages} 页 · 每页 {PAGE_SIZE} 场</p>
             {visible.length > 0 && (
@@ -865,9 +736,9 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
           </div>
         ) : (
           <div className="emptyState">
-            <b>{initialPage === 'favorites' && !favoriteReports.length ? '还没有收藏的报告' : '没有找到符合条件的会议内容'}</b>
-            <p>{initialPage === 'favorites' && !favoriteReports.length ? '在检索结果中点击“收藏”，就能在这里继续查看、安排日程或导出。' : '试试其他关键词，或减少筛选条件。'}</p>
-            {initialPage === 'favorites' && !favoriteReports.length ? <Link href="/learning">去检索报告 →</Link> : <button onClick={() => { resetFilters(); setBrowseAll(true); }}>清除筛选并浏览全部{initialPage === 'favorites' ? '收藏' : '报告'}</button>}
+            <b>没有找到符合条件的会议内容</b>
+            <p>试试其他关键词，或减少筛选条件。</p>
+            <button onClick={browseReports}>清除筛选并浏览全部报告</button>
           </div>
         )}
         {totalPages > 1 && (
@@ -894,12 +765,11 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
           noteIds={noteIds}
         />
       )}
-      <footer className="siteFooter">
+      {initialPage !== 'favorites' && initialPage !== 'schedule' && <footer className="siteFooter">
         <BrandLockup />
         <p>本工具用于会议预习与提问准备，不构成医疗建议。题目、人员、时间与地点均取自CSCO官方日程；专题会未公布讲者单位的条目已明确标注。</p>
         <Link href="#top">回到顶部 ↑</Link>
-      </footer>
-      {initialPage === 'schedule' && <MobileActionHub scheduledReports={scheduledReports} onOpen={openReport} onLocate={openVenueMap} />}
+      </footer>}
 
       {selected && (
         <DetailView

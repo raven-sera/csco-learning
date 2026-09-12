@@ -92,8 +92,6 @@
 }
 .mycoNavItem.isActive .mycoIcon { color: #fff; }
 .mycoNavItem.isActive .mycoNavCount { color: var(--ink); background: linear-gradient(135deg, #fcf150, #ffffff); }
-.mycoShell .scheduleActions .scheduleAtlasButton { display:flex; gap:16px; justify-content:space-between; align-items:center; min-height:42px; padding:10px 14px; border:1px solid var(--line-strong); border-radius:12px; font-size:12px; font-weight:600; }
-@media(max-width:600px) { .mycoShell .scheduleActions .scheduleAtlasButton { flex:1 1 45%; } }
 .mycoTools { display: grid; gap: 4px; margin-top: 30px; padding-top: 25px; border-top: 1px solid rgba(37, 76, 175, .14); }
 .mycoTools .mycoGroupLabel { margin-bottom: 7px; }
 .mycoTools .mycoNavItem { min-height: 45px; font-size: 13px; }
@@ -160,6 +158,14 @@
   .mycoNavItem, .mycoPortalLink, .mycoShell .mycoIconButton { transition: none; }
   .mycoDrawerOpen .mycoSidebar, .mycoDrawerOverlay { animation: none; }
   .mycoNavItem:not(:disabled):hover, .mycoNavItem:not(:disabled):active, .mycoPortalLink:hover, .mycoPortalLink:active, .mycoShell .mycoIconButton:hover, .mycoShell .mycoIconButton:active { transform: none; }
+}
+
+@media screen {
+  .mycoShell.isViewportPage { min-height:100dvh; }
+  .mycoShell.isViewportPage .mycoContent { height:100dvh; min-height:0; display:flex; flex-direction:column; }
+  .mycoShell.isViewportPage .mycoHeader { flex:none; height:calc(48px + env(safe-area-inset-top)); min-height:48px; padding: max(2px, env(safe-area-inset-top)) var(--myco-gutter) 2px; }
+  .mycoShell.isViewportPage .mycoWorkspace { flex:1; min-height:0; display:flex; padding:0 0 env(safe-area-inset-bottom); }
+  .mycoShell.isViewportPage :is(.favoritesPage,.schedulePage) { flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; }
 }
 
 @media print {

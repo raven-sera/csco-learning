@@ -81,50 +81,12 @@
   .mycoShell .emptyState > a { min-height:44px; padding:10px 18px; border-radius:12px; background:var(--brand); color:white; }
   .mycoShell .pagination button { background:#ffffffa6; border-color:white; border-radius:12px; }
   .mycoShell .pagination button[aria-current="page"] { background:var(--brand); color:white; }
-  .mycoCollectionHeading { margin:30px var(--page-gutter) 0; }
-  .mycoCollectionHeading > span { color:var(--muted); font-size:11px; letter-spacing:.16em; }
-  .mycoCollectionHeading h1 { font:650 30px/1.4 Arial,"Microsoft YaHei",sans-serif; margin:8px 0; }
-  .mycoCollectionHeading p { font-size:13px; color:var(--muted); }
   .mycoShell .siteFooter { display:flex; margin-top:auto; gap:24px; padding:22px var(--page-gutter); background:transparent; border-color:var(--line); }
   .mycoShell .siteFooter .huiduBrand { flex:none; }
   .mycoShell .siteFooter .huiduBrand img { width:64px; }
   .mycoShell .siteFooter .huiduSlogan { display:none; }
   .mycoShell .siteFooter > p { font-size:10px; color:var(--muted); max-width:650px; }
   .mycoShell .siteFooter > a { flex:none; font-size:11px; font-weight:400; margin-left:auto; border:0; color:var(--muted); }
-  .mycoShell .mySchedule { padding:32px var(--page-gutter) 48px; gap:26px; grid-template-columns:1fr; min-height:auto; background:transparent; color:var(--ink); }
-  .mycoShell .scheduleSummary { position:static; }
-  .mycoShell .scheduleSummary .sectionNo { display:none; }
-  .mycoShell .scheduleSummary > p:first-of-type { margin-top:0; color:var(--muted); }
-  .mycoShell .scheduleSummary h2 { font-size:30px; }
-  .mycoShell .scheduleDescription { max-width:800px; margin-top:16px; font-size:13px; color:var(--muted); }
-  .mycoShell .scheduleSummary dl { margin-top:20px; border-color:var(--line); }
-  .mycoShell .scheduleSummary dt { color:var(--brand); font-family:inherit; font-size:26px; }
-  .mycoShell .scheduleSummary dd { color:var(--muted); font-size:12px; }
-  .mycoShell .scheduleActions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
-  .mycoShell .scheduleActions button { min-height:42px; font-size:12px; border-radius:12px; border-color:var(--line); }
-  .mycoShell .scheduleAtlasButton { background:var(--action-fill); box-shadow:0 6px 18px rgba(37,76,175,.18),inset 0 1px 0 rgba(255,255,255,.22); }
-  .mycoShell .scheduleAtlasButton b { color:var(--lime); }
-  .mycoShell .scheduleCart { background:var(--glass-surface); border-color:var(--glass-border); box-shadow:var(--glass-shadow); border-radius:22px; backdrop-filter:blur(18px) saturate(135%); }
-  .mycoShell .scheduleCart > header { background:rgba(255,255,255,.5); border-color:var(--line); }
-  .mycoShell .scheduleCartTools > b { color:var(--muted); border-color:var(--line); }
-  .mycoShell .scheduleViewSwitch { border-color:var(--line); }
-  .mycoShell .scheduleViewSwitch button { color:var(--muted); font-size:12px; }
-  .mycoShell .scheduleViewSwitch button[aria-pressed="true"] { color:white; }
-  .mycoShell .scheduleDays { scrollbar-color:var(--line-strong) transparent; }
-  .mycoShell .scheduleDayGroup > header { background:var(--paper); color:var(--brand); border-color:var(--line); }
-  .mycoShell .scheduleItem { border-color:var(--line); }
-  .mycoShell .scheduleItem > time { color:var(--brand); }
-  .mycoShell .scheduleItemOpen { color:var(--ink); }
-  .mycoShell .scheduleItemOpen small,.mycoShell .scheduleItemOpen span { color:var(--muted); }
-  .mycoShell .scheduleItemVenue { color:var(--brand)!important; }
-  .mycoShell .scheduleItemOpen:hover strong { color:var(--brand); }
-  .mycoShell .scheduleItem.isAttended { background:linear-gradient(110deg,rgba(37,76,175,.12),rgba(252,241,80,.1)); }
-  .mycoShell .scheduleItem.isAttended .scheduleItemOpen strong { color:var(--ink); }
-  .mycoShell .scheduleItemCheckIn,.mycoShell .scheduleItemRemove { color:var(--muted); border-color:var(--line); }
-  .mycoShell .scheduleItemRemove:hover { color:var(--ink); }
-  .mycoShell .scheduleItemCheckIn[aria-pressed="true"],.mycoShell .scheduleItemCheckIn:hover { color:white; }
-  .mycoShell .scheduleEmpty > span { color:var(--brand); border-color:var(--line); }
-  .mycoShell .scheduleEmpty p { color:var(--muted); font-size:13px; }
   .mycoShell :is(button,a,select) { transition:transform .18s,box-shadow .18s,background .18s,color .18s; }
   .mycoShell :is(button,a):not(:disabled):hover { filter:brightness(.98); }
   .mycoShell :is(button,a):not(:disabled):active { transform:scale(.97); }
@@ -159,13 +121,32 @@
     .mycoShell .sectionHeadingActions { justify-content:space-between; width:100%; }
     .mycoShell .siteFooter { gap:14px; padding:22px var(--page-gutter) calc(24px + env(safe-area-inset-bottom)); flex-wrap:wrap; }
     .mycoShell .siteFooter > p { order:3; width:100%; }
-    .mycoShell .mySchedule { padding-top:24px; }
-    .mycoShell .scheduleSummary h2 { font-size:27px; }
-    .mycoShell .scheduleActions button { flex:1 1 45%; }
-    .mycoShell .scheduleCart > header { padding:18px; }
-    .mycoShell .scheduleItem { grid-template-columns:1fr; gap:12px; padding:18px; }
-    .mycoShell .scheduleItemActions { grid-column:auto; }
-    .mycoShell .scheduleSummary dl { gap:20px; }
   }
   @media(prefers-reduced-motion:reduce) { .mycoShell :is(button,a,select,.reportCard,.searchField) { transition:none; animation:none; } .mycoShell .reportCard:hover,.mycoShell :is(button,a):not(:disabled):active { transform:none; } }
+}
+
+@media screen {
+  .mycoShell .mycoSearch.isCompactSearch { flex:1; min-width:0; width:auto; margin:0; padding:0; }
+  .mycoShell .mycoSearch.isCompactSearch .searchField { min-height:40px; height:40px; gap:8px; padding:3px 4px 3px 12px; border-radius:15px; }
+  .mycoShell .mycoSearch.isCompactSearch .searchField input { height:32px; min-height:32px; font-size:14px; }
+  .mycoShell .mycoSearch.isCompactSearch .searchField .mycoSearchSubmit { height:32px; padding:0 13px; border-radius:11px; font-size:12px; }
+  .mycoShell .mycoSearch.isCompactSearch .searchField .mycoSearchSubmit span { display:none; }
+  .mycoShell .mycoSearch.isCompactSearch .searchField .mycoSearchClear { width:26px; height:30px; }
+  .mycoShell .mycoSearch.isCompactSearch .searchField .mycoFilterToggle { display:flex; align-items:center; gap:4px; width:auto; height:32px; padding:0 10px; border:1px solid var(--line); border-radius:11px; background:var(--glass-raised); color:var(--ink); font-size:12px; }
+  .mycoFilterToggle b { color:var(--brand); font-size:10px; }
+  .mycoFilterOverlay { position:fixed; inset:0; z-index:90; display:grid; place-items:center; padding:16px; background:rgba(12,27,58,.36); backdrop-filter:blur(8px); }
+  .mycoFilterDialog { width:min(520px,100%); max-height:calc(100dvh - 32px); overflow-y:auto; padding:22px; border:1px solid var(--glass-border); border-radius:22px; color:var(--ink); background:var(--glass-raised); box-shadow:var(--glass-shadow); }
+  .mycoFilterDialog header,.mycoFilterDialog footer { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .mycoFilterDialog h2 { margin:0; font:650 20px/1.4 Arial,"Microsoft YaHei",sans-serif; }
+  .mycoFilterDialog button { min-height:40px; padding:8px 14px; border:1px solid var(--line); border-radius:12px; background:var(--paper); color:var(--ink); font-size:13px; cursor:pointer; }
+  .mycoFilterDialog header button { min-width:40px; padding:4px; font-size:22px; }
+  .mycoShell .mycoSearch .mycoFilterDialog .filterRow { grid-template-columns:repeat(2,minmax(0,1fr)); padding:20px 0; gap:14px; }
+  .mycoShell .mycoSearch .mycoFilterDialog .filterRow label:last-child { grid-column:1/-1; }
+  .mycoShell .mycoSearch .mycoFilterDialog .filterRow select { min-height:44px; }
+  .mycoFilterDialog footer button:last-child { background:var(--action-fill); color:white; border-color:var(--brand); }
+  @media(max-width:380px) {
+    .mycoShell .mycoSearch.isCompactSearch .searchField { gap:4px; padding-left:8px; }
+    .mycoShell .mycoSearch.isCompactSearch .searchField svg { display:none; }
+    .mycoShell .mycoSearch.isCompactSearch .searchField .mycoSearchSubmit,.mycoShell .mycoSearch.isCompactSearch .searchField .mycoFilterToggle { padding:0 9px; }
+  }
 }

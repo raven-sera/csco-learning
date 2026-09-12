@@ -1,0 +1,253 @@
+.favoriteCollection {
+  --favorite-gap: 10px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 18px 10px;
+  color: var(--ink);
+}
+
+.favoriteCollection *,
+.favoriteCollectionDialogBackdrop * { box-sizing: border-box; }
+
+.favoriteCollection button,
+.favoriteCollection select,
+.favoriteCollectionDialog button {
+  font: inherit;
+  color: inherit;
+}
+
+.favoriteCollection button,
+.favoriteCollection select,
+.favoriteCollectionDialog button,
+.favoriteCollectionEmpty a {
+  border: 1px solid var(--glass-border);
+  background: var(--glass-raised);
+  border-radius: 9px;
+}
+
+.favoriteCollection button,
+.favoriteCollectionDialog button { cursor: pointer; }
+
+.favoriteCollection button:disabled,
+.favoriteCollectionDialog button:disabled { opacity: .42; cursor: default; }
+
+.favoriteCollection button:focus-visible,
+.favoriteCollection select:focus-visible,
+.favoriteCollectionEmpty a:focus-visible,
+.favoriteCollectionDialog button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.favoriteCollectionSearch { flex: 0 0 auto; min-width: 0; }
+.favoriteCollectionToolbar {
+  flex: 0 0 34px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.favoriteCollectionSummary,
+.favoriteCollectionTools,
+.favoriteCollectionDesktopActions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.favoriteCollectionSummary h1 { margin: 0; font-size: 16px; white-space: nowrap; }
+.favoriteCollectionSummary p { margin: 0; font-size: 12px; white-space: nowrap; color: var(--muted); }
+.favoriteCollectionSummary b { color: var(--ink); }
+.favoriteCollectionTools { flex-shrink: 0; }
+.favoriteCollectionTools button,
+.favoriteCollectionSort select { min-height: 30px; padding: 4px 9px; font-size: 12px; white-space: nowrap; }
+.favoriteCollectionDesktopActions button { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.favoriteCollectionGrid {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: var(--favorite-gap);
+}
+.favoriteCollectionCard {
+  container: favorite-card / size;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background:linear-gradient(132deg,rgba(37,76,175,.08),transparent 55%),var(--glass-surface);
+  box-shadow:0 3px 12px rgba(12,27,58,.055);
+  -webkit-backdrop-filter:blur(16px) saturate(135%);
+  backdrop-filter:blur(16px) saturate(135%);
+}
+.favoriteCollectionCard:nth-child(4n + 2) { background:linear-gradient(132deg,rgba(236,103,73,.1),transparent 55%),var(--glass-surface); }
+.favoriteCollectionCard:nth-child(4n + 3) { background:linear-gradient(132deg,rgba(252,241,80,.14),transparent 55%),var(--glass-surface); }
+.favoriteCollectionCard:nth-child(4n) { background:linear-gradient(132deg,rgba(37,76,175,.08),rgba(236,103,73,.06)),var(--glass-surface); }
+.favoriteCollection .favoriteCollectionOpen {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  text-align: left;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+}
+.favoriteCollectionTags { display: flex; gap: 6px; color: var(--brand); font-size: 11px; line-height: 16px; }
+.favoriteCollectionTags > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.favoriteCollectionTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 20px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.favoriteCollectionSimilar { margin-right: 4px; color: var(--brand); font-size: 11px; font-weight: 600; }
+.favoriteCollectionMeta { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 12px; line-height: 16px; }
+.favoriteCollectionPresenter,
+.favoriteCollectionTime,
+.favoriteCollectionVenue { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.favoriteCollectionPresenter { font-weight: 600; }
+.favoriteCollectionInstitution { color: var(--muted); font-weight: 400; }
+.favoriteCollectionTime { font-variant-numeric: tabular-nums; }
+.favoriteCollectionVenue { color: var(--muted); font-size: 11px; line-height: 14px; }
+.favoriteCollectionCardActions { display: flex; gap: 5px; flex: 0 0 auto; margin-top: 6px; }
+.favoriteCollectionCardActions button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 28px; padding: 3px 8px; font-size: 11px; }
+.favoriteCollectionCardActions button > span:first-child { font-size: 16px; line-height: 18px; }
+.favoriteCollectionCardActions .isFavorite { color:var(--ink); background:var(--lime-soft); }
+.favoriteCollectionCardActions .isScheduled { color:white; background:var(--action-fill); }
+.favoriteCollectionPagination {
+  flex: 0 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  font-size: 12px;
+}
+.favoriteCollectionPagination button { min-height: 30px; padding: 4px 12px; font-size: 12px; }
+.favoriteCollectionPagination > span { white-space: nowrap; }
+.favoriteCollectionEmpty { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
+.favoriteCollectionEmpty h2 { margin: 0; font-size: 18px; }
+.favoriteCollectionEmpty p { max-width: 36em; margin: 0; color: var(--muted); font-size: 13px; }
+.favoriteCollectionEmpty button,
+.favoriteCollectionEmpty a { padding: 8px 12px; font-size: 13px; color: var(--brand); }
+.favoriteCollectionSrOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.favoriteCollectionDialogBackdrop { position:fixed; z-index:1200; inset:0; display:grid; place-items:center; padding:16px; background:rgba(12,27,58,.32); backdrop-filter:blur(8px); }
+.favoriteCollectionDialog { display: flex; flex-direction: column; gap: 10px; width: min(100%, 390px); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 20px; border: 1px solid var(--glass-border); border-radius: 20px; color: var(--ink); background: var(--glass-raised); box-shadow: var(--glass-shadow); }
+.favoriteCollectionDialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.favoriteCollectionDialog h2 { margin: 0; font-size: 19px; }
+.favoriteCollectionDialog p { margin: 0; font-size: 13px; }
+.favoriteCollectionDialog button { min-height: 40px; padding: 8px 10px; text-align: left; font-size: 14px; }
+.favoriteCollectionDialog header button { text-align: center; }
+.favoriteCollectionDialogHint { color: var(--muted); line-height: 1.6; }
+
+@media (min-width: 1350px) {
+  .favoriteCollectionGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1100px) {
+  .favoriteCollectionDesktopActions { display: none; }
+}
+
+@media (max-width: 700px) {
+  .favoriteCollection { --favorite-gap: 2px; gap: 4px; padding: 4px 8px; }
+  .favoriteCollectionToolbar { flex-basis: 28px; gap: 5px; }
+  .favoriteCollectionSummary h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .favoriteCollectionSummary p { font-size: 11px; }
+  .favoriteCollectionTools { gap: 4px; }
+  .favoriteCollectionTools button,
+  .favoriteCollectionSort select { min-height: 28px; padding: 3px 5px; font-size: 11px; }
+  .favoriteCollectionGrid { grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(12, minmax(0, 1fr)); }
+  .favoriteCollectionCard { flex-direction: row; align-items: center; gap: 5px; padding: 0 4px; border-radius: 7px; }
+  .favoriteCollection .favoriteCollectionOpen { gap: 0; align-self: stretch; }
+  .favoriteCollectionTitle { display: block; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; line-height: 16px; }
+  .favoriteCollectionTags,
+  .favoriteCollectionInstitution,
+  .favoriteCollectionVenue,
+  .favoriteCollectionActionLabel { display: none; }
+  .favoriteCollectionMeta { flex-direction: row; align-items: center; gap: 5px; font-size: 11px; line-height: 13px; }
+  .favoriteCollectionPresenter { flex: 1; min-width: 0; }
+  .favoriteCollectionTime { flex: 0 0 auto; }
+  .favoriteCollectionCardActions { gap: 2px; margin: 0; }
+  .favoriteCollectionCardActions button { width: 26px; min-height: 28px; padding: 0; border-color: transparent; background: transparent; }
+  .favoriteCollectionCardActions button.isScheduled { color:var(--brand); background:rgba(37,76,175,.12); }
+  .favoriteCollectionPagination { flex-basis: 30px; gap: 10px; font-size: 11px; }
+  .favoriteCollectionPagination button { min-height: 28px; padding: 3px 8px; font-size: 11px; }
+  .favoriteCollectionPageSize { display: none; }
+}
+
+@media (max-height: 650px) and (min-width: 701px) {
+  .favoriteCollection { --favorite-gap: 5px; gap: 4px; padding: 4px 10px; }
+  .favoriteCollectionToolbar { flex-basis: 28px; }
+  .favoriteCollectionCard { padding: 5px 7px; }
+  .favoriteCollectionTags,
+  .favoriteCollectionVenue { display: none; }
+  .favoriteCollectionTitle { -webkit-line-clamp: 1; font-size: 13px; line-height: 16px; }
+  .favoriteCollectionMeta { font-size: 11px; line-height: 14px; }
+}
+
+@media (max-height: 500px) and (min-width: 600px) {
+  .favoriteCollection { --favorite-gap: 4px; gap: 4px; padding: 4px 8px; }
+  .favoriteCollectionToolbar { flex-basis: 28px; }
+  .favoriteCollectionSummary h1,
+  .favoriteCollectionDesktopActions { display: none; }
+  .favoriteCollectionGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(0, 1fr)); }
+  .favoriteCollectionCard { flex-direction: row; align-items: center; gap: 3px; padding: 2px 4px; border-radius: 8px; }
+  .favoriteCollection .favoriteCollectionOpen { align-self: stretch; gap: 0; }
+  .favoriteCollectionTitle { display: block; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; line-height: 16px; }
+  .favoriteCollectionTags,
+  .favoriteCollectionVenue,
+  .favoriteCollectionInstitution,
+  .favoriteCollectionActionLabel { display: none; }
+  .favoriteCollectionMeta { flex-direction: column; align-items: stretch; gap: 0; font-size: 11px; line-height: 13px; }
+  .favoriteCollectionPresenter { flex: initial; }
+  .favoriteCollectionCardActions { flex-direction: column; gap: 0; margin: 0; }
+  .favoriteCollectionCardActions button { width: 27px; min-height: 23px; padding: 0; border-color: transparent; background: transparent; }
+  .favoriteCollectionCardActions button.isScheduled { color:var(--brand); background:rgba(37,76,175,.12); }
+  .favoriteCollectionPagination { flex-basis: 30px; }
+}
+
+@container favorite-card (max-height: 120px) {
+  .favoriteCollectionTags,
+  .favoriteCollectionVenue { display: none; }
+}
+
+@container favorite-card (max-height: 100px) {
+  .favoriteCollectionTitle { -webkit-line-clamp: 1; }
+}
+
+@media (max-width:599px) and (max-height:559px) {
+  .favoriteCollection { --favorite-gap:4px; }
+  .favoriteCollectionGrid { grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(6,minmax(0,1fr)); }
+  .favoriteCollectionCard { gap:3px; padding:2px 4px; }
+  .favoriteCollectionMeta { flex-direction:column; align-items:stretch; gap:0; }
+  .favoriteCollectionPresenter { flex:initial; }
+  .favoriteCollectionCardActions { flex-direction:column; gap:0; }
+  .favoriteCollectionCardActions button { width:27px; min-height:23px; }
+}
+
+@media (min-width:480px) and (max-height:380px) {
+  .favoriteCollection { --favorite-gap:4px; gap:4px; padding:4px 8px; }
+  .favoriteCollectionGrid { grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:repeat(4,minmax(0,1fr)); }
+  .favoriteCollectionCard { flex-direction:row; padding:0 4px; }
+  .favoriteCollection .favoriteCollectionOpen { gap:0; align-self:stretch; }
+  .favoriteCollectionTitle { display:block; font-size:13px; line-height:16px; white-space:nowrap; text-overflow:ellipsis; }
+  .favoriteCollectionMeta { flex-direction:row; align-items:center; gap:5px; font-size:11px; line-height:13px; }
+  .favoriteCollectionPresenter { flex:1; min-width:0; }
+  .favoriteCollectionTime { flex:none; }
+  .favoriteCollectionCardActions,.favoriteCollectionTags,.favoriteCollectionVenue,.favoriteCollectionInstitution { display:none; }
+}

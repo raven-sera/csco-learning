@@ -11,6 +11,7 @@ type IconName = 'search' | 'bookmark' | 'calendar' | 'library' | 'map' | 'atlas'
 
 type MycoShellProps = {
   activePage: ActivePage;
+  fitViewport?: boolean;
   favoriteCount: number;
   scheduleCount: number;
   libraryCount: number;
@@ -46,7 +47,7 @@ function ShellIcon({ name }: { name: IconName }) {
   return <svg className="mycoIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICON_PATHS[name]} /></svg>;
 }
 
-export default function MycoShell({ activePage, favoriteCount, scheduleCount, libraryCount, onMap, attendanceCount, onExport, children }: MycoShellProps) {
+export default function MycoShell({ activePage, fitViewport = false, favoriteCount, scheduleCount, libraryCount, onMap, attendanceCount, onExport, children }: MycoShellProps) {
   const sidebarId = useId();
   const [mobile, setMobile] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -73,7 +74,7 @@ export default function MycoShell({ activePage, favoriteCount, scheduleCount, li
     action();
   };
 
-  return <div className={`mycoShell${drawerActive ? ' mycoDrawerOpen' : ''}`}>
+  return <div className={`mycoShell${fitViewport ? ' isViewportPage' : ''}${drawerActive ? ' mycoDrawerOpen' : ''}`}>
     <a className="mycoSkipLink" href="#myco-workspace" inert={drawerActive || undefined}>跳至工作区</a>
     {drawerActive && <div className="mycoDrawerOverlay" onClick={closeDrawer} aria-hidden="true" />}
     <aside className="mycoSidebar" id={sidebarId} role={drawerActive ? 'dialog' : undefined} aria-modal={drawerActive || undefined} aria-label="MyCO 导航" inert={mobile && !drawerOpen || undefined}>
