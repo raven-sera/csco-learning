@@ -80,9 +80,9 @@ function FlightMap({ venues, legs, selected, onSelect }: {
     <div className="attendanceMapViewport" tabIndex={0} aria-label="会场打卡分布，可滚动查看放大的地图">
       <svg className="attendanceFlightMap" viewBox="0 0 1000 470" style={{ width: `${zoom * 100}%`, minWidth: `${zoom * 760}px` }} aria-label="山东大厦一、二层会场地图；弧线表示打卡先后，不是实际导航路线">
         <defs>
-          <pattern id={`${id}-grid`} width="25" height="25" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#657ca5" opacity=".25" /></pattern>
-          <linearGradient id={`${id}-route`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#81deeb"/><stop offset="1" stopColor="#bba5fa"/></linearGradient>
-          <marker id={`${id}-arrow`} viewBox="0 0 12 12" markerWidth="9" markerHeight="9" refX="10" refY="6" orient="auto"><path d="M1 2 11 6 1 10 4 6Z" fill="#a4d9f2" /></marker>
+          <pattern id={`${id}-grid`} width="25" height="25" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#eef3fb" opacity=".25" /></pattern>
+          <linearGradient id={`${id}-route`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fcf150"/><stop offset="1" stopColor="#ec6749"/></linearGradient>
+          <marker id={`${id}-arrow`} viewBox="0 0 12 12" markerWidth="9" markerHeight="9" refX="10" refY="6" orient="auto"><path d="M1 2 11 6 1 10 4 6Z" fill="#ec6749" /></marker>
         </defs>
         <rect width="1000" height="470" fill={`url(#${id}-grid)`} />
         {layout.map(item => <g key={item.floor} className="attendanceFloorPlan">

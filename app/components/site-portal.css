@@ -1,64 +1,61 @@
 .cscoPortal {
-  --portal-ink:#202d53;
-  --portal-muted:#626c87;
-  --portal-blue:#4263be;
   position:relative;
   isolation:isolate;
   min-height:100svh;
   overflow:hidden;
-  color:var(--portal-ink);
-  background:radial-gradient(ellipse at 8% 30%,#dce8fb 0,transparent 45%),radial-gradient(ellipse at 92% 50%,#e4def8 0,transparent 48%),linear-gradient(145deg,#f4f7fc,#edf0fb 65%,#f5f2fb);
+  color:var(--ink);
+  background:radial-gradient(ellipse at 7% 22%,rgba(37,76,175,.23),transparent 48%),radial-gradient(ellipse at 96% 42%,rgba(236,103,73,.2),transparent 48%),radial-gradient(ellipse at 67% 96%,rgba(252,241,80,.18),transparent 42%),linear-gradient(145deg,#eef3fb,#ffffff 60%,#eef3fb);
 }
 .cscoPortal::before,.cscoPortal::after { content:""; position:absolute; z-index:-1; pointer-events:none; border:1px solid #ffffffb3; border-radius:50%; }
 .cscoPortal::before { width:820px; height:820px; top:-520px; left:calc(50% - 410px); box-shadow:0 0 0 56px #ffffff1f,0 0 0 112px #ffffff14; }
 .cscoPortal::after { width:580px; height:580px; right:-410px; bottom:-180px; box-shadow:0 0 0 68px #ffffff24; }
 .cscoPortalInner { width:min(1160px,100%); margin:0 auto; padding:0 clamp(22px,4vw,48px); }
-.cscoPortalHeader { min-height:100px; display:flex; justify-content:space-between; align-items:center; gap:24px; border-bottom:1px solid #65769a1c; }
+.cscoPortalHeader { min-height:100px; display:flex; justify-content:space-between; align-items:center; gap:24px; border-bottom:1px solid rgba(37,76,175,.14); }
 .cscoPortalHeader > a { min-width:0; }
-.cscoPortalEdition { display:inline-flex; align-items:center; gap:10px; flex-shrink:0; padding:8px 15px; border:1px solid #ffffffd9; border-radius:999px; background:#ffffff57; color:var(--portal-muted); font-size:11px; letter-spacing:.1em; }
-.cscoPortalEdition b { color:var(--portal-blue); font-weight:600; }
+.cscoPortalEdition { display:inline-flex; align-items:center; gap:10px; flex-shrink:0; padding:8px 15px; border:1px solid var(--glass-border); border-radius:999px; background:var(--glass-surface); color:var(--muted); font-size:11px; letter-spacing:.1em; box-shadow:0 3px 14px rgba(12,27,58,.04); }
+.cscoPortalEdition b { color:var(--brand); font-weight:600; }
 .cscoPortalWelcome { display:grid; grid-template-columns:1fr 290px; align-items:center; gap:48px; padding:58px 12px 46px; }
-.cscoPortalEyebrow { display:flex; align-items:center; gap:10px; margin:0 0 19px; color:var(--portal-blue); font-size:10px; letter-spacing:.19em; font-weight:600; }
-.cscoPortalEyebrow > span { width:6px; height:6px; border-radius:50%; background:#8297db; box-shadow:0 0 0 5px #839ad312; }
+.cscoPortalEyebrow { display:flex; align-items:center; gap:10px; margin:0 0 19px; color:var(--brand); font-size:10px; letter-spacing:.19em; font-weight:600; }
+.cscoPortalEyebrow > span { width:6px; height:6px; border-radius:50%; background:var(--coral); box-shadow:0 0 0 5px rgba(236,103,73,.13); }
 .cscoPortalWelcome h1 { margin:0; font-size:clamp(32px,3.8vw,48px); line-height:1.45; font-weight:600; letter-spacing:-.045em; }
-.cscoPortalWelcome h1 em { color:var(--portal-blue); font-style:normal; }
-.cscoPortalIntro { margin:19px 0 0; color:var(--portal-muted); font-size:14px; line-height:1.95; }
+.cscoPortalWelcome h1 em { color:var(--brand); font-style:normal; }
+.cscoPortalIntro { margin:19px 0 0; color:var(--muted); font-size:14px; line-height:1.95; }
 .cscoPortalOrbit { position:relative; width:258px; height:258px; justify-self:center; display:grid; place-items:center; border:1px solid #ffffffd9; border-radius:50%; background:radial-gradient(circle at 30% 20%,#ffffff5c,transparent 70%); box-shadow:0 0 0 17px #ffffff1a,0 0 0 18px #ffffff40; }
-.cscoPortalOrbitRing { position:absolute; inset:28px; border:1px solid #b0bde65c; border-radius:50%; transform:rotate(-25deg) scaleX(1.32); }
-.cscoPortalOrbitCore { position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; width:162px; height:162px; border:1px solid #ffffffdf; border-radius:50%; background:linear-gradient(140deg,#fffffff2,#e6edfd94 50%,#d8d5f4a6); box-shadow:inset 0 2px 14px #fff9,0 20px 48px #7b8db323; backdrop-filter:blur(14px); }
-.cscoPortalOrbitCore span { color:#7e8bb1; font:400 22px/1.3 Georgia,serif; font-style:italic; }
-.cscoPortalOrbitCore strong { color:#4d64a5; font-size:31px; font-weight:500; letter-spacing:-.06em; }
-.cscoPortalOrbitDot { position:absolute; top:43px; right:27px; width:14px; height:14px; border:3px solid #edf1ff; border-radius:50%; background:#9aace4; box-shadow:0 3px 12px #617abd35; }
-.cscoPortalOrbitLabel { position:absolute; bottom:16px; color:#707f9e; font-size:8px; letter-spacing:.16em; }
-.cscoPortalResume { margin:0 0 20px; padding:13px 19px; border:1px solid #fff; border-radius:14px; background:#ffffff80; color:var(--portal-blue); font-size:13px; }
+.cscoPortalOrbitRing { position:absolute; inset:28px; border:1px solid rgba(37,76,175,.26); border-radius:50%; transform:rotate(-25deg) scaleX(1.32); }
+.cscoPortalOrbitCore { position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; width:162px; height:162px; border:1px solid var(--glass-border); border-radius:50%; background:radial-gradient(circle at 24% 12%,rgba(255,255,255,.38),transparent 56%),linear-gradient(145deg,rgba(37,76,175,.9),rgba(12,27,58,.96)); box-shadow:inset 0 2px 14px rgba(255,255,255,.32),0 20px 48px rgba(37,76,175,.24); backdrop-filter:blur(14px) saturate(145%); }
+.cscoPortalOrbitCore span { color:#eef3fb; font:400 22px/1.3 Georgia,serif; font-style:italic; }
+.cscoPortalOrbitCore strong { color:#ffffff; font-size:31px; font-weight:500; letter-spacing:-.06em; }
+.cscoPortalOrbitDot { position:absolute; top:43px; right:27px; width:14px; height:14px; border:3px solid #fcf150; border-radius:50%; background:#ec6749; box-shadow:0 3px 12px rgba(236,103,73,.3); }
+.cscoPortalOrbitLabel { position:absolute; bottom:16px; color:var(--muted); font-size:8px; letter-spacing:.16em; }
+.cscoPortalResume { margin:0 0 20px; padding:13px 19px; border:1px solid var(--glass-border); border-radius:14px; background:var(--glass-surface); color:var(--brand); font-size:13px; }
 .cscoPortalGrid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
-.cscoPortalCard { position:relative; min-width:0; display:flex; flex-direction:column; padding:28px; border:1px solid #fffffff2; border-radius:28px; background:linear-gradient(140deg,#ffffffc2,#ffffff66); box-shadow:0 12px 40px #5d6d9810,inset 0 1px 0 #fff; backdrop-filter:blur(20px); }
-.cscoPortalMyco { background:linear-gradient(140deg,#ffffffed,#f3f7ff9c); }
+.cscoPortalCard { position:relative; min-width:0; display:flex; flex-direction:column; padding:28px; border:1px solid var(--glass-border); border-radius:28px; background:var(--glass-surface); box-shadow:var(--glass-shadow); backdrop-filter:blur(24px) saturate(145%); }
+.cscoPortalMyco { background:radial-gradient(ellipse at 95% 5%,rgba(252,241,80,.1),transparent 62%),var(--glass-surface); }
 .cscoPortalCard > header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
-.cscoPortalIndex { display:flex; align-items:center; gap:10px; color:var(--portal-muted); font-size:11px; letter-spacing:.03em; }
-.cscoPortalIndex i { width:16px; height:1px; background:#b8c2d7; }
-.cscoPortalStatus { padding:3px 10px; border:1px solid #a6a6c42b; border-radius:999px; background:#eeedf752; color:#73738f; font-size:10px; }
-.cscoPortalStatus.isOpen { border-color:#90a5d533; background:#e9f0fc; color:#4d67a7; }
+.cscoPortalIndex { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:11px; letter-spacing:.03em; }
+.cscoPortalIndex i { width:16px; height:1px; background:var(--coral); }
+.cscoPortalStatus { padding:3px 10px; border:1px solid rgba(86,99,122,.2); border-radius:999px; background:rgba(238,243,251,.65); color:var(--muted); font-size:10px; }
+.cscoPortalStatus.isOpen { border-color:rgba(37,76,175,.16); background:linear-gradient(120deg,rgba(252,241,80,.35),rgba(255,255,255,.8)); color:var(--ink); }
 .cscoPortalCardIdentity { display:flex; align-items:center; gap:18px; margin:30px 0 20px; min-height:74px; }
-.cscoPortalCardIcon { flex-shrink:0; display:grid; place-items:center; width:64px; height:64px; border:1px solid #fff; border-radius:50%; background:linear-gradient(140deg,#e5edff,#f9fbff); color:#637cc3; box-shadow:0 7px 20px #8599c71a,inset 0 1px 3px #fff; }
+.cscoPortalCardIcon { flex-shrink:0; display:grid; place-items:center; width:64px; height:64px; border:1px solid #ffffff; border-radius:50%; background:linear-gradient(140deg,rgba(37,76,175,.14),rgba(255,255,255,.94)); color:var(--brand); box-shadow:0 7px 20px rgba(37,76,175,.1),inset 0 1px 3px #ffffff; }
 .cscoPortalCardIcon svg { width:30px; height:30px; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
-.cscoPortalPosters .cscoPortalCardIcon { color:#8b83b0; background:linear-gradient(140deg,#eae5f9,#fbfaff); }
-.cscoPortalCard h2 { margin:0; color:var(--portal-ink); font-size:clamp(21px,2.2vw,27px); font-weight:600; line-height:1.4; letter-spacing:-.04em; }
+.cscoPortalPosters .cscoPortalCardIcon { color:var(--ink); background:linear-gradient(140deg,rgba(236,103,73,.2),rgba(252,241,80,.14),rgba(255,255,255,.9)); }
+.cscoPortalCard h2 { margin:0; color:var(--ink); font-size:clamp(21px,2.2vw,27px); font-weight:600; line-height:1.4; letter-spacing:-.04em; }
 .cscoPortalMyco h2 { font-size:40px; font-weight:550; line-height:1.1; letter-spacing:-.055em; }
-.cscoPortalCardIdentity p { margin:5px 0 0; color:#727d98; font-size:10px; letter-spacing:.15em; }
+.cscoPortalCardIdentity p { margin:5px 0 0; color:var(--muted); font-size:10px; letter-spacing:.15em; }
 .cscoPortalMyco .cscoPortalCardIdentity p { font-size:12px; letter-spacing:.04em; }
-.cscoPortalDescription { margin:0; min-height:54px; color:var(--portal-muted); font-size:13px; line-height:1.9; }
+.cscoPortalDescription { margin:0; min-height:54px; color:var(--muted); font-size:13px; line-height:1.9; }
 .cscoPortalFeatures { display:flex; flex-wrap:wrap; gap:7px; padding:0; margin:21px 0 27px; list-style:none; }
-.cscoPortalFeatures li { padding:4px 9px; border:1px solid #dce4f391; border-radius:999px; color:#697793; font-size:10px; background:#ffffff66; }
-.cscoPortalPendingNote { margin:25px 0 30px; color:#82849b; font-size:11px; }
+.cscoPortalFeatures li { padding:4px 9px; border:1px solid rgba(37,76,175,.12); border-radius:999px; color:var(--muted); font-size:10px; background:#ffffff80; }
+.cscoPortalPendingNote { margin:25px 0 30px; color:var(--muted); font-size:11px; }
 .cscoPortalEnter,.cscoPortalPending { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:52px; margin-top:auto; padding:7px 9px 7px 20px; border:1px solid transparent; border-radius:999px; font-size:13px; }
-.cscoPortalEnter { background:#4665ba; color:#fff; box-shadow:0 7px 20px #4665ba26; transition:background .2s,box-shadow .2s; }
+.cscoPortalEnter { background:var(--action-fill); color:#ffffff; box-shadow:0 7px 20px rgba(37,76,175,.24),inset 0 1px 0 rgba(255,255,255,.25); transition:background .2s,box-shadow .2s; }
 .cscoPortalEnter > span { display:grid; place-items:center; width:35px; height:35px; border:1px solid #ffffff38; border-radius:50%; background:#ffffff12; font-size:20px; }
-.cscoPortalEnter:hover { background:#3654a5; box-shadow:0 9px 25px #4665ba3b; }
-.cscoPortal a:focus-visible { outline:3px solid #6587d4; outline-offset:5px; }
-.cscoPortalPending { border-color:#d9d8ea88; background:#ffffff39; color:#7a7d97; }
-.cscoPortalPending > span:last-child { display:grid; place-items:center; width:35px; height:35px; color:#9c9db1; }
-.cscoPortalFooter { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 20px; margin-top:36px; padding:24px 0 28px; border-top:1px solid #65769a1c; color:#727e97; font-size:11px; }
+.cscoPortalEnter:hover { background:linear-gradient(120deg,#0c1b3a,#254caf); box-shadow:0 9px 25px rgba(37,76,175,.3); }
+.cscoPortal a:focus-visible { outline:3px solid var(--brand); outline-offset:5px; }
+.cscoPortalPending { border-color:rgba(86,99,122,.18); background:rgba(255,255,255,.46); color:var(--muted); }
+.cscoPortalPending > span:last-child { display:grid; place-items:center; width:35px; height:35px; color:var(--muted); }
+.cscoPortalFooter { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 20px; margin-top:36px; padding:24px 0 28px; border-top:1px solid rgba(37,76,175,.14); color:var(--muted); font-size:11px; }
 .cscoPortalFooter p { margin:0; font-size:10px; }
 .cscoPortalFooterYear { font-size:9px; letter-spacing:.1em; }
 @media (max-width:800px) {

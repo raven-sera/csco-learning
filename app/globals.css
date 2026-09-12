@@ -7,13 +7,18 @@
   --paper:#eef3fb;
   --paper-raised:#ffffff;
   --lime:#fcf150;
-  --lime-soft:#eef3fb;
+  --lime-soft:#fefce0;
   --coral:#ec6749;
   --line:#d7dfed;
   --line-strong:#9cabc4;
   --brand:#254caf;
   --shadow-sm:0 10px 30px rgba(12,27,58,.08);
   --shadow-lg:0 24px 70px rgba(12,27,58,.14);
+  --glass-surface:linear-gradient(135deg,rgba(255,255,255,.86),rgba(238,243,251,.64));
+  --glass-raised:linear-gradient(135deg,rgba(255,255,255,.96),rgba(238,243,251,.84));
+  --glass-border:rgba(255,255,255,.9);
+  --glass-shadow:0 18px 50px rgba(12,27,58,.08),inset 0 1px 0 rgba(255,255,255,.9);
+  --action-fill:linear-gradient(120deg,#254caf,#0c1b3a);
   --radius-sm:10px;
   --radius-md:18px;
   --radius-lg:28px;
@@ -26,8 +31,9 @@ body {
   min-width:320px;
   margin:0;
   background:
-    radial-gradient(circle at 82% 6%,rgba(37,76,175,.07),transparent 25rem),
-    radial-gradient(circle at 8% 42%,rgba(236,103,73,.06),transparent 28rem),
+    radial-gradient(circle at 82% 6%,rgba(37,76,175,.12),transparent 25rem),
+    radial-gradient(circle at 8% 42%,rgba(236,103,73,.1),transparent 28rem),
+    radial-gradient(circle at 80% 80%,rgba(252,241,80,.12),transparent 30rem),
     var(--paper);
   color:var(--ink);
   font-family:Arial,"Microsoft YaHei","Noto Sans CJK SC",sans-serif;
