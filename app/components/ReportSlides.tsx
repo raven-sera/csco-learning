@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { reports, searchScore } from '../lib/reports';
+import { reports, searchMatch } from '../lib/reports';
 import type { Report } from '../lib/reports';
 import { readSlideRecords, removeSlideRecords, moveSlideRecords, writeSlideRecords, LIBRARY_CHANGE_EVENT } from '../lib/noteStorage';
 import type { StoredSlide } from '../lib/noteStorage';
@@ -280,7 +280,7 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
   const exportUrl = useBlobUrl(exportResult?.blob);
   const disabled = load !== 'ready' || !!busy;
   const displaySlides = useMemo(() => slides.map((slide, index) => slide.order === index ? slide : { ...slide, order: index }), [slides]);
-  const moveMatches = useMemo(() => reports.filter(item => item.id !== report.id).map(item => ({ report: item, score: searchScore(item, moveQuery) })).filter(item => item.score > 0).sort((a, b) => b.score - a.score), [moveQuery, report.id]);
+  const moveMatches = useMemo(() => reports.filter(item => item.id !== report.id).map(item => ({ report: item, score: searchMatch(item, moveQuery).score })).filter(item => item.score > 0).sort((a, b) => b.score - a.score), [moveQuery, report.id]);
   useDialog('.slidesMoveOverlay', () => { if (!locked.current) setMoving(false); }, moving);
   useDialog('.slidesDeleteOverlay', () => { if (!locked.current) setDeleting(false); }, deleting);
   useEffect(() => { if (load === 'ready') onCountChange?.(slides.length); }, [load, slides.length, onCountChange]);

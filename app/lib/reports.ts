@@ -113,30 +113,50 @@ export function sortReportsByDateTime(input:readonly Report[]) {
 
 
 
-const norm = (value:string) => value.toLocaleLowerCase().normalize('NFKC').replace(/[^a-z0-9\u3400-\u9fff]+/g,'');
+const norm = (value:string) => value.normalize('NFKC').toLowerCase().replace(/[^a-z0-9\u3400-\u9fff]+/g,'');
 function levenshtein(a:string,b:string) {
   if (!a.length) return b.length; if (!b.length) return a.length;
   const row = Array.from({length:b.length+1},(_,i)=>i);
   for (let i=1;i<=a.length;i++) { let prev=row[0]; row[0]=i; for(let j=1;j<=b.length;j++){ const old=row[j]; row[j]=Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1)); prev=old; } }
   return row[b.length];
 }
-const searchIndex = new WeakMap<Report, { hay: string; tokens: string[] }>();
-let previousQuery = '', normalizedQuery = '';
-export function searchScore(report: Report, query: string) {
-  if (query !== previousQuery) { previousQuery = query; normalizedQuery = norm(query); }
+export type SearchMatch = { kind:'exact'|'similar'|'none'; score:number };
+const noMatch:SearchMatch = { kind:'none', score:0 };
+const browseMatch:SearchMatch = { kind:'exact', score:1 };
+const searchIndex = new WeakMap<Report, { fields:string[]; aliases:string; tokens:string[] }>();
+let previousQuery = '', normalizedQuery = '', browseQuery = true;
+export function searchMatch(report:Report, query:string):SearchMatch {
+  if (query !== previousQuery) {
+    previousQuery = query;
+    normalizedQuery = norm(query);
+    browseQuery = !query.trim();
+  }
   const q = normalizedQuery;
-  if (!q) return 1;
+  if (!q) return browseQuery ? browseMatch : noMatch;
   let index = searchIndex.get(report);
   if (!index) {
     index = {
-      hay: norm([report.kind,report.scheduleCategory,report.program,report.session,report.sourceTitle,report.speaker,report.institution,report.field,report.directions.join(' '),report.abstractNo,report.searchAliases].join(' ')),
-      tokens: Array.from(new Set([report.sourceTitle,report.speaker,report.field,report.searchAliases].join(' ').toLowerCase().split(/[^a-z0-9\u3400-\u9fff]+/).map(norm).filter(Boolean))),
+      fields: [
+        report.kind,report.scheduleCategory,report.program,report.session,report.sourceTitle,
+        report.speaker,report.institution,report.field,...report.directions,report.abstractNo,
+        report.dateTime,report.location,
+      ].map(norm),
+      aliases: norm(report.searchAliases),
+      tokens: Array.from(new Set([report.sourceTitle,report.speaker,report.field,report.searchAliases].join(' ')
+        .normalize('NFKC').toLowerCase().split(/[^a-z0-9\u3400-\u9fff]+/).filter(Boolean))),
     };
     searchIndex.set(report, index);
   }
-  const position = index.hay.indexOf(q);
-  if (position >= 0) return 100 - position / 1000;
-  if (q.length > 32 || q.length < 2) return 0;
+  // Keep source fields separate: adjoining metadata is not a literal phrase.
+  let position = Infinity;
+  for (const field of index.fields) {
+    const found = field.indexOf(q);
+    if (found >= 0) position = Math.min(position, found);
+  }
+  if (position !== Infinity) return { kind:'exact', score:100 + 1 / (1 + position) };
+  const aliasPosition = index.aliases.indexOf(q);
+  if (aliasPosition >= 0) return { kind:'similar', score:80 + 1 / (1 + aliasPosition) };
+  if (q.length > 32 || q.length < 2) return noMatch;
   const threshold = q.length <= 4 ? 1 : q.length <= 8 ? 2 : 3;
   let best = threshold + 1;
   for (const token of index.tokens) {
@@ -144,6 +164,6 @@ export function searchScore(report: Report, query: string) {
     best = Math.min(best, levenshtein(token, q));
     if (best === 0) break;
   }
-  return best <= threshold ? 60 - best : 0;
+  return best <= threshold ? { kind:'similar', score:60 - best } : noMatch;
 }
 

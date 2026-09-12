@@ -903,9 +903,8 @@ h2 { margin:0; font-size:clamp(34px,4vw,50px); font-weight:500; line-height:1; l
 }
 
 /* Mobile conference companion · desktop remains unchanged above 760px */
-.mobileActionHub,.mobileBottomNav,.mobileDetailActions,.mobileScheduleButton,.mobileScheduleCopy,.mobileTextNoteCopy { display:none; }
+.mobileActionHub,.mobileDetailActions,.mobileScheduleButton,.mobileScheduleCopy,.mobileTextNoteCopy { display:none; }
 @media(max-width:760px){
-  body { padding-bottom:calc(78px + env(safe-area-inset-bottom)); }
   .topbar nav { display:none; }
   .hero { gap:22px; padding-top:28px; padding-bottom:38px; }
   .heroCopy h1 { font-size:clamp(38px,11vw,48px); }
@@ -963,14 +962,6 @@ h2 { margin:0; font-size:clamp(34px,4vw,50px); font-weight:500; line-height:1; l
   .scheduleItemActions { grid-column:2/-1; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .scheduleItemCheckIn { grid-column:1/-1; min-height:40px; background:rgba(37,76,175,.08); }
   .scheduleItemRemove { grid-column:2; min-height:38px; padding:0 11px; }
-  .mobileBottomNav { position:fixed; right:10px; bottom:calc(8px + env(safe-area-inset-bottom)); left:10px; z-index:90; min-height:64px; display:grid; grid-template-columns:1fr 1.2fr 1fr; align-items:stretch; overflow:hidden; border:1px solid #56637a; border-radius:22px; background:rgba(12,27,58,.96); box-shadow:0 18px 44px rgba(12,27,58,.34); backdrop-filter:blur(16px); }
-  .mobileBottomNav a,.mobileBottomNav button { position:relative; display:grid; place-items:center; align-content:center; gap:4px; min-width:0; padding:7px 5px; border:0; background:transparent; color:#d7dfed; cursor:pointer; text-decoration:none; }
-  .mobileBottomNav a + a,.mobileBottomNav button { border-left:1px solid #56637a; }
-  .mobileBottomNav span { position:relative; font-size:18px; line-height:1; }
-  .mobileBottomNav b { font-size:9px; white-space:nowrap; }
-  .mobileBottomNav a.isActive { background:var(--brand); color:var(--paper-raised); }
-  .mobileBottomNav button { background:var(--coral); color:var(--ink); }
-  .mobileBottomNav i { position:absolute; top:-8px; right:-13px; min-width:17px; height:17px; display:grid; place-items:center; padding:0 4px; border-radius:999px; background:var(--lime); color:var(--ink); font:900 8px/1 monospace; }
   .detailOverlay { padding-bottom:0; }
   .mobileDetailActions { position:static; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:14px 16px; padding:12px; border:1px solid var(--line-strong); border-radius:18px; background:var(--paper-raised); box-shadow:0 10px 28px rgba(12,27,58,.09); }
   .mobileDetailActionLabel { grid-column:1/-1; display:flex; align-items:center; gap:7px; color:var(--muted); font:800 8px/1 monospace; letter-spacing:.12em; }

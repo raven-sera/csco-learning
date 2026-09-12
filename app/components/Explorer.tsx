@@ -1,6 +1,6 @@
 'use client';
 
-import { lazy, memo, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, lazy, memo, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useDialog } from '../lib/useDialog';
 import { useLocalRecord } from '../lib/useLocalRecord';
@@ -17,8 +17,10 @@ const PersonalLibrary = lazy(() => import('./PersonalLibrary'));
 import { NOTEBOOK_OPEN_EVENT, requestNotebook, type NotebookOpenOptions } from '../lib/libraryTypes';
 import { LIBRARY_CHANGE_EVENT, readLibrarySummaries, type LibrarySummary } from '../lib/noteStorage';
 import './library-shell.css';
+import MycoShell from './MycoShell';
+import './myco-search.css';
 import {
-  directions, fields, reportKindCounts, reports, searchScore,
+  directions, fields, reports, searchMatch,
   sortReportsByDateTime, type Report,
 } from '../lib/reports';
 import { CHECK_IN_PHRASES, createCheckInRecord, isCheckInRecord, type CheckInRecord } from '../lib/checkIn';
@@ -28,17 +30,12 @@ const DEFAULT_FIELD = '全部领域';
 const DEFAULT_DIRECTION = '全部方向';
 const DEFAULT_TIME_SLOT = '全部时间';
 const DEFAULT_VENUE = '全部场地';
-const DEFAULT_UNIT_TYPE = '全部单位类型';
+const DEFAULT_UNIT_TYPE = '全部单位';
 const UNIT_TYPES = ['高校', '企业'] as const;
 const FAVORITES_KEY = 'csco-favorite-reports';
 const SCHEDULE_KEY = 'csco-custom-schedule-reports';
 const CHECK_IN_KEY = 'csco-report-attendance-v1';
 
-const NAV_ITEMS = [
-  { id: 'reports', label: '报告看板', href: '/learning#reports' },
-  { id: 'schedule', label: '我的日程', href: '/schedule' },
-  { id: 'library', label: '个人图书馆', href: '/library' },
-] as const;
 
 const ACADEMIC_UNIT_PATTERN = /大学|学院|学校|研究生院|University|Univeristy|College|School of/i;
 const ENTERPRISE_UNIT_PATTERN = /公司|集团|药业|制药|生物医药|生物科技|生物技术|医疗科技|医药科技|研发中心|Pharma|Biotech|Therapeutics|\bInc\.?\b|\bLtd\.?\b|\bLLC\b|\bCorp\.?\b|AstraZeneca|Pfizer|Roche|Novartis|Bayer|Merck|BeiGene|Janssen|Amgen|Sanofi|AbbVie|GlaxoSmithKline|Bristol.?Myers|Eli Lilly/i;
@@ -70,25 +67,14 @@ const TIME_SLOTS = Array.from(new Set(TIME_SLOT_BY_REPORT_ID.values())).filter(B
 const VENUES = Array.from(new Set(reports.map((report) => report.location.trim())))
   .filter(Boolean)
   .sort((left, right) => left.localeCompare(right, 'zh-CN'));
+const INSTITUTIONS_BY_REPORT_ID = new Map(reports.map(report => [report.id, report.institution.split(/[；;]/).map(unit => unit.trim()).filter(Boolean)]));
+const INSTITUTIONS = Array.from(new Set(Array.from(INSTITUTIONS_BY_REPORT_ID.values()).flat())).sort((a, b) => a.localeCompare(b, 'zh-CN'));
 
 
 
-const FIELD_COUNTS = reports.reduce(
-  (counts, report) => counts.set(report.field, (counts.get(report.field) ?? 0) + 1),
-  new Map<string, number>(),
-);
-const TOP_FIELDS = fields
-  .map((name) => ({ name, count: FIELD_COUNTS.get(name) ?? 0 }))
-  .sort((a, b) => b.count - a.count)
-  .slice(0, 8);
 const REPORT_BY_ID = new Map(reports.map((report) => [report.id, report]));
-const HERO_METRICS = [
-  { value: reports.length, label: '场日程内容' },
-  { value: reportKindCounts.口头报告, label: '场口头报告' },
-  { value: reportKindCounts.汇报分享, label: '场汇报分享' },
-] as const;
 
-type ActivePage = (typeof NAV_ITEMS)[number]['id'];
+type ActivePage = 'reports' | 'favorites' | 'schedule' | 'library';
 type ExportRequest = {
   reports:Report[];
   initialMode?:ExportMode;
@@ -301,38 +287,6 @@ function useAttendance() {
 }
 
 
-function SiteHeader({ activePage }: { activePage: ActivePage }) {
-  return (
-    <header className="topbar">
-      <Link className="brand" href="/" aria-label="返回三站集合入口">
-        <BrandLockup compact />
-      </Link>
-      <nav aria-label="页面导航">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            className={activePage === item.id ? 'active' : ''}
-            href={item.href}
-            key={item.id}
-            aria-current={activePage === item.id ? 'page' : undefined}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-      <Link className="edition" href="/">三站入口 ↗</Link>
-    </header>
-  );
-}
-
-function Hero({ entries }: { entries: LibrarySummary[] }) {
-  return <section className="workspaceHero" id="top">
-    <div><p className="workspaceEyebrow">CSCO 2026 · 9.17—9.19</p><h1>把听会安排好，<em>把收获留下来。</em></h1>
-      <p>检索 {reports.length} 场会议内容，收藏、排期、记录，一站完成。</p>
-      <dl>{HERO_METRICS.map(metric => <div key={metric.label}><dt>{metric.value}</dt><dd>{metric.label}</dd></div>)}</dl>
-    </div>
-    <div className="workspaceShortcuts"><Link href="/schedule"><span>▦</span><div><strong>我的日程</strong><small>三日听会安排</small></div><b>→</b></Link><Link href="/library"><span>▤</span><div><strong>个人图书馆</strong><small>{entries.length ? `${entries.length} 场资料 · 随时继续阅读` : '笔记 · PPT · 录音归档'}</small></div><b>→</b></Link></div>
-  </section>;
-}
 
 function MobileActionHub({ scheduledReports, onOpen, onLocate }:{scheduledReports:Report[];onOpen:(report:Report)=>void;onLocate:(report:Report)=>void}) {
   const { report: nextReport, ongoing } = useNextScheduledReport(scheduledReports);
@@ -359,131 +313,48 @@ function MobileActionHub({ scheduledReports, onOpen, onLocate }:{scheduledReport
   );
 }
 
-function MobileBottomNav({activePage,scheduleCount}:{activePage:ActivePage;scheduleCount:number}) {
-  return (
-    <nav className="mobileBottomNav" aria-label="手机端主要导航"><Link href="/" aria-label="返回三合一入口"><span>⌂</span><b>三合一</b></Link>
-      <Link className={activePage === 'reports' ? 'isActive' : ''} href="/learning#reports" aria-current={activePage === 'reports' ? 'page' : undefined}><span>⌕</span><b>报告</b></Link>
-      <Link className={activePage === 'schedule' ? 'isActive' : ''} href="/schedule" aria-current={activePage === 'schedule' ? 'page' : undefined}><span>▣<i>{scheduleCount}</i></span><b>我的日程</b></Link>
-      <Link className={activePage === 'library' ? 'isActive' : ''} href="/library" aria-current={activePage === 'library' ? 'page' : undefined}><span>▤</span><b>图书馆</b></Link>
-    </nav>
-  );
-}
 
 function SearchPanel({
-  query,
-  timeSlot,
-  venue,
-  unitType,
-  field,
-  direction,
-  resultCount,
-  updating,
-  onQueryChange,
-  onTimeSlotChange,
-  onVenueChange,
-  onUnitTypeChange,
-  onFieldChange,
-  onDirectionChange,
-  onReset,
+  query, timeSlot, venue, unitType, field, direction, updating, hasResults,
+  onQueryChange, onTimeSlotChange, onVenueChange, onUnitTypeChange,
+  onFieldChange, onDirectionChange, onReset, onSearch,
 }: {
-  query: string;
-  timeSlot: string;
-  venue: string;
-  unitType: string;
-  field: string;
-  direction: string;
-  resultCount: number;
-  updating: boolean;
-  onQueryChange: (value: string) => void;
-  onTimeSlotChange: (value: string) => void;
-  onVenueChange: (value: string) => void;
-  onUnitTypeChange: (value: string) => void;
-  onFieldChange: (value: string) => void;
-  onDirectionChange: (value: string) => void;
-  onReset: () => void;
+  query: string; timeSlot: string; venue: string; unitType: string; field: string; direction: string;
+  updating: boolean; hasResults: boolean;
+  onQueryChange: (value: string) => void; onTimeSlotChange: (value: string) => void;
+  onVenueChange: (value: string) => void; onUnitTypeChange: (value: string) => void;
+  onFieldChange: (value: string) => void; onDirectionChange: (value: string) => void;
+  onReset: () => void; onSearch: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const activeFilterCount = [timeSlot !== DEFAULT_TIME_SLOT, venue !== DEFAULT_VENUE, unitType !== DEFAULT_UNIT_TYPE, field !== DEFAULT_FIELD, direction !== DEFAULT_DIRECTION].filter(Boolean).length;
-  const hasFilters = Boolean(
-    query
-      || timeSlot !== DEFAULT_TIME_SLOT
-      || venue !== DEFAULT_VENUE
-      || unitType !== DEFAULT_UNIT_TYPE
-      || field !== DEFAULT_FIELD
-      || direction !== DEFAULT_DIRECTION,
-  );
-
-  return (
-    <section
-      className={`searchDock ${updating ? 'isUpdating' : ''}`}
-      aria-label="报告检索"
-      aria-busy={updating}
-    >
-      <div className="searchIntro">
-        <span>DISCOVER</span>
-        <label htmlFor="report-search">检索报告</label>
-      </div>
+  return <section className={`mycoSearch ${hasResults ? 'hasResults' : ''}`} aria-label="报告检索">
+    <div className="mycoSearchIntro">
+      <span className="mycoSearchEyebrow">让每一次听会，都成为自己的收获</span>
+      <h1>My<span>CO</span><i aria-hidden="true" /></h1>
+      <p>My CSCO · 你的会议学习空间</p>
+    </div>
+    <form className="searchDock" role="search" onSubmit={event => { event.preventDefault(); onSearch(); }}>
       <div className="searchField">
-        <span aria-hidden>⌕</span>
-        <input
-          id="report-search"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="中英文、拼音近音、药物名或报告人…"
-          autoComplete="off"
-        />
-        {query && (
-          <button onClick={() => onQueryChange('')} aria-label="清空搜索">×</button>
-        )}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+        <input id="report-search" aria-label="检索会议内容" type="search" value={query} onChange={event => onQueryChange(event.target.value)} placeholder="搜索报告、报告人、单位或关键词" autoComplete="off" />
+        {query && <button type="button" className="mycoSearchClear" onClick={() => onQueryChange('')} aria-label="清空搜索">×</button>}
+        <button type="submit" className="mycoSearchSubmit">搜索<span aria-hidden="true"> →</span></button>
       </div>
-      <div className="searchMeta" aria-live="polite">
-        <strong>{resultCount}</strong>
-        <span>{updating ? '正在筛选' : '场匹配'}</span>
+      <div className="filterRow">
+        <label><span>时间</span><select value={timeSlot} onChange={event => onTimeSlotChange(event.target.value)}><option>{DEFAULT_TIME_SLOT}</option>{TIME_SLOTS.map(item => <option key={item}>{item}</option>)}</select></label>
+        <label><span>场地</span><select value={venue} onChange={event => onVenueChange(event.target.value)}><option>{DEFAULT_VENUE}</option>{VENUES.map(item => <option key={item}>{item}</option>)}</select></label>
+        <label><span>单位</span><select value={unitType} onChange={event => onUnitTypeChange(event.target.value)}><option>{DEFAULT_UNIT_TYPE}</option><optgroup label="按单位类型">{UNIT_TYPES.map(item => <option key={item}>{item}</option>)}</optgroup><optgroup label="按具体单位">{INSTITUTIONS.map(item => <option key={item}>{item}</option>)}</optgroup></select></label>
+        <label><span>领域</span><select value={field} onChange={event => onFieldChange(event.target.value)}><option>{DEFAULT_FIELD}</option>{fields.map(item => <option key={item}>{item}</option>)}</select></label>
+        <label><span>研究方向</span><select value={direction} onChange={event => onDirectionChange(event.target.value)}><option>{DEFAULT_DIRECTION}</option>{directions.map(item => <option key={item}>{item}</option>)}</select></label>
       </div>
-      <button className="filterToggle" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} aria-controls="advanced-filters">{expanded ? '收起筛选' : '更多筛选'}{activeFilterCount > 0 ? ` · ${activeFilterCount} 项已选` : ''}<span>{expanded ? '−' : '＋'}</span></button>
-      <div className={`filterRow ${expanded ? 'isExpanded' : ''}`} id="advanced-filters">
-        <label>
-          <span>时间</span>
-          <select value={timeSlot} onChange={(event) => onTimeSlotChange(event.target.value)}>
-            <option value={DEFAULT_TIME_SLOT}>{DEFAULT_TIME_SLOT}</option>
-            {TIME_SLOTS.map((item) => <option key={item}>{item}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>会议场地</span>
-          <select value={venue} onChange={(event) => onVenueChange(event.target.value)}>
-            <option value={DEFAULT_VENUE}>{DEFAULT_VENUE}</option>
-            {VENUES.map((item) => <option key={item}>{item}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>单位类型</span>
-          <select value={unitType} onChange={(event) => onUnitTypeChange(event.target.value)}>
-            <option value={DEFAULT_UNIT_TYPE}>{DEFAULT_UNIT_TYPE}</option>
-            {UNIT_TYPES.map((item) => <option key={item}>{item}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>领域</span>
-          <select value={field} onChange={(event) => onFieldChange(event.target.value)}>
-            <option value={DEFAULT_FIELD}>{DEFAULT_FIELD}</option>
-            {fields.map((item) => <option key={item}>{item}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>研究方向</span>
-          <select
-            value={direction}
-            onChange={(event) => onDirectionChange(event.target.value)}
-          >
-            <option value={DEFAULT_DIRECTION}>{DEFAULT_DIRECTION}</option>
-            {directions.map((item) => <option key={item}>{item}</option>)}
-          </select>
-        </label>
-        {hasFilters && <button className="clearFilters" onClick={onReset}>重置全部筛选</button>}
+      <div className="mycoSearchHint">
+        <span aria-live="polite">{updating ? '正在检索…' : activeFilterCount ? `已选 ${activeFilterCount} 项筛选 · 精确匹配优先` : '中英文均可检索 · 精确匹配优先'}</span>
+        {(query || activeFilterCount > 0) && <button type="button" onClick={onReset}>重置筛选</button>}
       </div>
-    </section>
-  );
+    </form>
+    {!hasResults && <div className="mycoSearchSuggestions"><span>试试搜索</span>{['肺癌', '免疫治疗', '葛睿'].map(item => <button key={item} onClick={() => onQueryChange(item)}>{item}<span aria-hidden="true">↗</span></button>)}</div>}
+    {!hasResults && <p className="mycoSearchCatalog">{reports.length} 场会议内容，等你发现。<button onClick={onSearch}>浏览全部报告 →</button></p>}
+  </section>;
 }
 
 function Pagination({
@@ -652,7 +523,7 @@ function MySchedule({
 
 export default function Explorer({ initialPage = 'reports' }: { initialPage?: ActivePage }) {
   const [query, setQuery] = useState('');
-  const [scope, setScope] = useState<'all' | 'favorites' | 'scheduled'>('all');
+  const [browseAll, setBrowseAll] = useState(false);
   const [sortOrder, setSortOrder] = useState<'relevance' | 'time'>('relevance');
   const deferredQuery = useDeferredValue(query);
   const [timeSlot, setTimeSlot] = useState(DEFAULT_TIME_SLOT);
@@ -747,32 +618,37 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
     clearSchedule();
   }, [clearSchedule, scheduledReports.length]);
 
-  const filtered = useMemo(() => {
-    if (initialPage !== 'reports') return [];
-    const ranked: { report: Report; score: number }[] = [];
+  const showResults = initialPage === 'favorites' || browseAll || Boolean(query.trim()) || timeSlot !== DEFAULT_TIME_SLOT || venue !== DEFAULT_VENUE || unitType !== DEFAULT_UNIT_TYPE || field !== DEFAULT_FIELD || direction !== DEFAULT_DIRECTION;
+  const ranked = useMemo(() => {
+    if (!showResults || (initialPage !== 'reports' && initialPage !== 'favorites')) return [];
+    const matches: { report: Report; score: number; kind: 'exact' | 'similar' | 'none' }[] = [];
     const hasQuery = Boolean(deferredQuery.trim());
-
     for (const report of reports) {
-      if (scope === 'favorites' && !favoriteSet.has(report.id)) continue;
-      if (scope === 'scheduled' && !scheduleSet.has(report.id)) continue;
+      if (initialPage === 'favorites' && !favoriteSet.has(report.id)) continue;
       if (timeSlot !== DEFAULT_TIME_SLOT && TIME_SLOT_BY_REPORT_ID.get(report.id) !== timeSlot) continue;
       if (venue !== DEFAULT_VENUE && report.location !== venue) continue;
-      if (unitType !== DEFAULT_UNIT_TYPE && !UNIT_TYPES_BY_REPORT_ID.get(report.id)?.includes(unitType as (typeof UNIT_TYPES)[number])) continue;
+      if (unitType !== DEFAULT_UNIT_TYPE && !INSTITUTIONS_BY_REPORT_ID.get(report.id)?.includes(unitType) && !UNIT_TYPES_BY_REPORT_ID.get(report.id)?.includes(unitType as (typeof UNIT_TYPES)[number])) continue;
       if (field !== DEFAULT_FIELD && report.field !== field) continue;
       if (direction !== DEFAULT_DIRECTION && !report.directions.includes(direction)) continue;
-      const score = hasQuery ? searchScore(report, deferredQuery) : 1;
-      if (score > 0) ranked.push({ report, score });
+      const match = searchMatch(report, deferredQuery);
+      if (match.kind !== 'none') matches.push({ report, ...match });
     }
-
-    ranked.sort((a, b) => hasQuery ? b.score - a.score : a.report.id - b.report.id);
-    const result = ranked.map(({ report }) => report);
-    return sortOrder === 'time' ? sortReportsByDateTime(result) : result;
-  }, [initialPage, deferredQuery, timeSlot, venue, unitType, field, direction, scope, sortOrder, favoriteSet, scheduleSet]);
+    matches.sort((a, b) => {
+      const groupOrder = Number(a.kind === 'similar') - Number(b.kind === 'similar');
+      if (groupOrder) return groupOrder;
+      if (sortOrder === 'time') return a.report.dateTime.localeCompare(b.report.dateTime, 'zh-CN') || a.report.id - b.report.id;
+      return (hasQuery ? b.score - a.score : 0) || a.report.id - b.report.id;
+    });
+    return matches;
+  }, [showResults, initialPage, deferredQuery, timeSlot, venue, unitType, field, direction, sortOrder, favoriteSet]);
+  const filtered = ranked.map(item => item.report);
+  const exactCount = ranked.reduce((count, item) => count + Number(item.kind === 'exact'), 0);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const latestFavorite = favoriteReports.at(-1);
+  const visibleRanks = ranked.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const firstSimilarIndex = visibleRanks.findIndex(item => item.kind === 'similar');
   const updating = query !== deferredQuery;
   const visibleFavoriteCount = visible.reduce(
     (count, report) => count + Number(favoriteSet.has(report.id)),
@@ -782,7 +658,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
 
   const resetFilters = useCallback(() => {
     setQuery('');
-    setScope('all');
+    setBrowseAll(false);
     setTimeSlot(DEFAULT_TIME_SLOT);
     setVenue(DEFAULT_VENUE);
     setUnitType(DEFAULT_UNIT_TYPE);
@@ -929,24 +805,12 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
   }, [flushNotebook]);
 
   return (
-    <main className={initialPage === 'schedule' ? 'schedulePage' : initialPage === 'library' ? 'libraryPage' : 'reportsPage'}>
-      <SiteHeader activePage={initialPage} />
-      {initialPage === 'reports' && <>
-      {favoriteReports.length > 0 && (
-        <aside className="dynamicIsland" aria-live="polite">
-          <div className="islandPulse"><span aria-hidden>★</span></div>
-          <div className="islandLatest">
-            <small>最新收藏</small>
-            <strong>{latestFavorite?.speaker}</strong>
-          </div>
-          <div className="islandCount"><b>{favoriteReports.length}</b><span>场已收藏</span></div>
-          <button className="islandUploadButton" data-status={scheduleUploadFeedback ? 'confirmed' : 'idle'} onClick={uploadFavoritesToSchedule} aria-label="上传收藏到我的日程">{scheduleUploadFeedback || '上传日程'} <b>{scheduleUploadFeedback ? '✓' : '＋'}</b></button>
-          <button className="islandExportButton" onClick={() => setExportRequest({reports:[...favoriteReports],clearFavoritesAfterExport:false})}>导出 <b>↗</b></button>
-        </aside>
-      )}
-
-      <Hero entries={libraryEntries} />
-
+    <MycoShell activePage={initialPage} favoriteCount={favoriteReports.length} scheduleCount={scheduledReports.length} libraryCount={libraryEntries.length}
+      onMap={() => openVenueMap()} onAtlas={() => setCheckInAtlasOpen(true)}
+      onExport={() => setExportRequest({ reports: initialPage === 'schedule' ? [...scheduledReports] : initialPage === 'library' ? libraryEntries.flatMap(entry => { const report = REPORT_BY_ID.get(entry.reportId); return report ? [report] : []; }) : [...favoriteReports], clearFavoritesAfterExport: false })}>
+    <main id="top" className={initialPage === 'schedule' ? 'schedulePage' : initialPage === 'library' ? 'libraryPage' : 'reportsPage'}>
+      {(initialPage === 'reports' || initialPage === 'favorites') && <>
+      {initialPage === 'favorites' && <header className="mycoCollectionHeading"><span>MY COLLECTION</span><h1>收藏</h1><p>把值得关注的内容留下来，慢慢构建你的听会清单。</p></header>}
       <SearchPanel
         query={query}
         timeSlot={timeSlot}
@@ -954,7 +818,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
         unitType={unitType}
         field={field}
         direction={direction}
-        resultCount={filtered.length}
+        hasResults={showResults}
         updating={updating}
         onQueryChange={(value) => { setQuery(value); setPage(1); }}
         onTimeSlotChange={(value) => { setTimeSlot(value); setPage(1); }}
@@ -963,33 +827,19 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
         onFieldChange={(value) => { setField(value); setPage(1); }}
         onDirectionChange={(value) => { setDirection(value); setPage(1); }}
         onReset={resetFilters}
+        onSearch={() => { setBrowseAll(true); setPage(1); }}
       />
 
+      {showResults && <>
       <div className="collectionToolbar">
-        <div role="group" aria-label="会议内容范围">{([{id:'all',label:'全部内容',count:reports.length},{id:'favorites',label:'我的收藏',count:favoriteReports.length},{id:'scheduled',label:'已排日程',count:scheduledReports.length}] as const).map(item => <button key={item.id} aria-pressed={scope === item.id} onClick={() => { setScope(item.id); setPage(1); }}>{item.label}<b>{item.count}</b></button>)}</div>
+        <p className="mycoResultCount" role="status">{deferredQuery.trim() ? <>精确匹配 <b>{exactCount}</b><span>相似选项 <b>{filtered.length - exactCount}</b></span></> : <>共 <b>{filtered.length}</b> 场{initialPage === 'favorites' ? '收藏' : '会议内容'}</>}</p>
         <label className="sortSelect">排序<select aria-label="报告排序" value={sortOrder} onChange={event => { setSortOrder(event.target.value as 'relevance' | 'time'); setPage(1); }}><option value="relevance">相关优先</option><option value="time">会议时间</option></select></label>
-        {scope === 'favorites' && favoriteReports.length > 0 && <div className="collectionActions"><button onClick={uploadFavoritesToSchedule}>全部加入日程</button><button onClick={() => setExportRequest({reports:[...favoriteReports],clearFavoritesAfterExport:false})}>导出收藏</button></div>}
+        {initialPage === 'favorites' && favoriteReports.length > 0 && <div className="collectionActions"><button onClick={uploadFavoritesToSchedule}>{scheduleUploadFeedback || '全部加入日程'}</button><button onClick={() => setExportRequest({reports:[...favoriteReports],clearFavoritesAfterExport:false})}>导出收藏</button></div>}
       </div>
-      <section className="fieldRail" aria-label="热门领域快捷筛选">
-        <span>热门领域</span>
-        {TOP_FIELDS.map((item) => (
-          <button
-            className={field === item.name ? 'selected' : ''}
-            key={item.name}
-            onClick={() => {
-              setField(field === item.name ? DEFAULT_FIELD : item.name);
-              setPage(1);
-            }}
-            aria-pressed={field === item.name}
-          >
-            {item.name}<b>{item.count}</b>
-          </button>
-        ))}
-      </section>
 
       <section className="reportSection" id="reports" aria-busy={updating}>
         <div className="sectionHeading">
-          <div><span className="sectionNo">A.</span><h2>会议内容看板</h2></div>
+          <div><h2>{initialPage === 'favorites' ? '我的收藏' : '检索结果'}</h2></div>
           <div className="sectionHeadingActions">
             <p>第 {currentPage} / {totalPages} 页 · 每页 {PAGE_SIZE} 场</p>
             {visible.length > 0 && (
@@ -1009,8 +859,9 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
         {visible.length ? (
           <div className="cardGrid">
             {visible.map((report, index) => (
+              <Fragment key={report.id}>
+              {index === firstSimilarIndex && <div className="mycoSimilarDivider" role="separator" aria-label="相似选项"><div><h3>相似选项</h3><span>{filtered.length - exactCount} 场</span></div><p>{exactCount === 0 ? '没有精确匹配。以下为相近内容或相关词匹配，请核对报告人及题目。' : '以下为相近内容或相关词匹配，与输入不完全一致。'}</p></div>}
               <ReportCard
-                key={report.id}
                 report={report}
                 order={index}
                 onOpen={openReport}
@@ -1019,19 +870,21 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
                 scheduled={scheduleSet.has(report.id)}
                 onToggleSchedule={toggleScheduledReport}
               />
+              </Fragment>
             ))}
           </div>
         ) : (
           <div className="emptyState">
-            <b>没有找到完全匹配的会议内容</b>
-            <p>可以缩短关键词，或尝试领域、专场、药物英文名、报告人姓名。</p>
-            <button onClick={resetFilters}>查看全部内容</button>
+            <b>{initialPage === 'favorites' && !favoriteReports.length ? '还没有收藏的报告' : '没有找到符合条件的会议内容'}</b>
+            <p>{initialPage === 'favorites' && !favoriteReports.length ? '在检索结果中点击“收藏”，就能在这里继续查看、安排日程或导出。' : '试试其他关键词，或减少筛选条件。'}</p>
+            {initialPage === 'favorites' && !favoriteReports.length ? <Link href="/learning">去检索报告 →</Link> : <button onClick={() => { resetFilters(); setBrowseAll(true); }}>清除筛选并浏览全部{initialPage === 'favorites' ? '收藏' : '报告'}</button>}
           </div>
         )}
         {totalPages > 1 && (
           <Pagination page={currentPage} totalPages={totalPages} onChange={changePage} />
         )}
       </section>
+      </>}
       </>}
 
       {initialPage === 'library' && <Suspense fallback={<p className="moduleLoading" role="status">正在打开个人图书馆…</p>}><PersonalLibrary onOpen={openReport} /></Suspense>}
@@ -1055,10 +908,9 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
       <footer className="siteFooter">
         <BrandLockup />
         <p>本工具用于会议预习与提问准备，不构成医疗建议。题目、人员、时间与地点均取自CSCO官方日程；专题会未公布讲者单位的条目已明确标注。</p>
-        <Link href={initialPage === 'schedule' ? '/learning#reports' : '#top'}>{initialPage === 'schedule' ? '返回报告看板 ←' : '回到顶部 ↑'}</Link>
+        <Link href="#top">回到顶部 ↑</Link>
       </footer>
       {initialPage === 'schedule' && <MobileActionHub scheduledReports={scheduledReports} onOpen={openReport} onLocate={openVenueMap} />}
-      <MobileBottomNav activePage={initialPage} scheduleCount={scheduledReports.length} />
 
       {selected && (
         <DetailView
@@ -1071,7 +923,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
           scheduled={scheduleSet.has(selected.id)}
           onToggleSchedule={toggleScheduledReport}
           options={noteOptions}
-          returnLabel={initialPage === 'library' ? '返回图书馆' : initialPage === 'schedule' ? '返回日程' : '返回报告看板'}
+          returnLabel={initialPage === 'library' ? '返回图书馆' : initialPage === 'schedule' ? '返回日程' : initialPage === 'favorites' ? '返回收藏' : '返回检索'}
         />
       )}
       {mapReport !== undefined && <Suspense fallback={<div className="venueOpening" role="status"><p>正在载入会场地图…</p><button onClick={closeVenueMap}>取消</button></div>}>
@@ -1104,5 +956,6 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
       {checkInAtlasOpen && <CheckInAtlas records={Object.values(records)} onClose={() => setCheckInAtlasOpen(false)} />}
       </Suspense>
     </main>
+    </MycoShell>
   );
 }

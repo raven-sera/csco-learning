@@ -26,6 +26,7 @@ jobs:
         uses: actions/configure-pages@v5
       - run: npm ci
       - run: npm run test:paths
+      - run: npm run test:search
       - run: npm run test:venues
       - run: npm run test:calendar
       - name: Export and verify website

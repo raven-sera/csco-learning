@@ -5,12 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrandLockup } from './BrandLockup';
 import { PORTAL_ENTER_EVENT, safeReturnPath } from '../lib/entryNavigation';
+import './site-portal.css';
 
-const sites = [
-  { id:'02', kind:'learning', title:'CSCO 会议学习台', label:'会议工具', description:'安排听会日程，记录现场收获，在个人图书馆随时回看。', features:['报告检索','私人日程','笔记与图书馆'] },
-  { id:'01', kind:'game', title:'癌症知识互动游戏', label:'互动学习', description:'在选择、反馈与挑战中，巩固肿瘤学知识。', features:['互动练习','游戏化学习'] },
-  { id:'03', kind:'posters', title:'CSCO 会议海报图鉴', label:'学术海报', description:'集中浏览与查找会议海报，让有价值的研究随时可回看。', features:['海报浏览','内容检索'] },
-] as const;
 
 export default function SitePortal() {
   const router = useRouter();
@@ -23,14 +19,15 @@ export default function SitePortal() {
     queueMicrotask(() => { setDestination(safeReturnPath(requestedPath)); setResuming(Boolean(requestedPath)); });
   }, [requestedPath]);
   const warmup = useCallback(() => {
+    const route = destination.split('#', 1)[0];
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     if (!navigator.onLine || document.visibilityState !== 'visible' || connection?.saveData ||
-      /^(slow-)?2g$/.test(connection?.effectiveType || '') || warmed.current.has(destination)) return;
-    warmed.current.add(destination);
-    router.prefetch(destination);
+      /^(slow-)?2g$/.test(connection?.effectiveType || '') || warmed.current.has(route)) return;
+    warmed.current.add(route);
+    router.prefetch(route);
   }, [destination, router]);
   useEffect(() => {
-    // Let the portal paint first; warm the learning route without delaying the first screen.
+    // Let the portal paint first; warm MyCO without delaying the first screen.
     if ('requestIdleCallback' in window) {
       const request = window.requestIdleCallback(warmup, { timeout: 1500 });
       return () => window.cancelIdleCallback(request);
@@ -38,37 +35,55 @@ export default function SitePortal() {
     const timer = setTimeout(warmup, 1000);
     return () => clearTimeout(timer);
   }, [warmup]);
-  const enter = () => window.dispatchEvent(new Event(PORTAL_ENTER_EVENT));
-  return <main className="unifiedPortal" id="main-content">
-    <header className="portalBrandBar"><Link href="/" aria-label="汇度三合一首页"><BrandLockup /></Link><span><i aria-hidden="true" /> 肿瘤学互动学习 · 2026</span></header>
-    <section className="portalWelcome" aria-labelledby="portal-title">
-      <div className="portalWelcomeCopy">
-        <p className="portalEyebrow">探索有方向，学习有回响</p>
-        <h1 id="portal-title">好奇、学习、记录。<br/><em>从这里开始。</em></h1>
-        <p className="portalIntro">连接会前的期待、会中的灵感与会后的思考。<br/>三个学习空间，让知识不止于相遇。</p>
-        <a className="portalExplore" href="#learning-spaces">探索学习空间 <span aria-hidden="true">↓</span></a>
-      </div>
-      <aside className="portalJourney" aria-label="你的会议学习旅程">
-        <div className="portalJourneyHeading"><span>你的会议学习旅程</span><b>CSCO <span>2026</span></b></div>
-        <ol>
-          <li><span>01</span><div><strong>会前 · 找到方向</strong><small>检索报告，安排专属日程</small></div></li>
-          <li><span>02</span><div><strong>会中 · 留住灵感</strong><small>记录笔记，收藏重要时刻</small></div></li>
-          <li><span>03</span><div><strong>会后 · 连接知识</strong><small>回到图书馆，整理每一份收获</small></div></li>
-        </ol>
-        <span className="portalJourneyOrbit" aria-hidden="true" />
-      </aside>
-    </section>
-    {resuming && <p className="portalResume" role="status">欢迎回来。进入会议学习台，即可继续刚才打开的内容。</p>}
-    <div className="portalSectionHeading" id="learning-spaces"><h2>选择你的学习空间</h2><span>一个入口，连接三种可能</span></div>
-    <section className="unifiedPortalGrid" aria-label="三个学习空间">
-      {sites.map((site) => <article className={`unifiedPortalCard ${site.kind}`} key={site.id}>
-        <header><span>{site.id} / {site.label}</span><b>{site.kind === 'learning' ? '已开放' : '待接入'}</b></header>
-        <div className="portalCardNumber" aria-hidden="true">{site.id}<span>↗</span></div>
-        <h2>{site.title}</h2><p>{site.description}</p>
-        <ul>{site.features.map(feature => <li key={feature}>{feature}</li>)}</ul>
-        {site.kind === 'learning' ? <Link className="portalEnter" href={destination} onClick={enter} onPointerEnter={warmup} onFocus={warmup} prefetch={false}>{resuming ? '继续会议学习' : '进入会议学习台'}<span aria-hidden="true">→</span></Link> : <div className="portalPending">入口准备中<span aria-hidden="true">—</span></div>}
-      </article>)}
-    </section>
-    <footer className="unifiedPortalFooter"><span>汇聚真知，传播有度</span><p>当前开放 1 / 3 · 笔记和日程保存在当前浏览器</p></footer>
+  return <main className="cscoPortal" id="main-content">
+    <div className="cscoPortalInner">
+      <header className="cscoPortalHeader">
+        <Link href="/" aria-label="汇度学习入口"><BrandLockup /></Link>
+        <span className="cscoPortalEdition">CSCO <b>2026</b></span>
+      </header>
+      <section className="cscoPortalWelcome" aria-labelledby="portal-title">
+        <div className="cscoPortalWelcomeCopy">
+          <p className="cscoPortalEyebrow"><span /> YOUR CSCO, CONNECTED.</p>
+          <h1 id="portal-title">让每一次相遇，<br /><em>成为自己的收获。</em></h1>
+          <p className="cscoPortalIntro">从一场报告到一份思考。<br />在这里，连接你的会议日程与学术发现。</p>
+        </div>
+        <div className="cscoPortalOrbit" aria-hidden="true">
+          <div className="cscoPortalOrbitRing" />
+          <div className="cscoPortalOrbitCore"><span>My</span><strong>CSCO</strong></div>
+          <span className="cscoPortalOrbitDot" />
+          <span className="cscoPortalOrbitLabel">DISCOVER · KEEP · REVISIT</span>
+        </div>
+      </section>
+      {resuming && <p className="cscoPortalResume" role="status">欢迎回来。进入 MyCO，即可继续刚才打开的内容。</p>}
+      <section className="cscoPortalGrid" aria-label="两个学习空间">
+        <article className="cscoPortalCard cscoPortalMyco" aria-labelledby="myco-title">
+          <header><span className="cscoPortalIndex">01 <i /> 个人会议空间</span><span className="cscoPortalStatus isOpen">已开放</span></header>
+          <div className="cscoPortalCardIdentity">
+            <span className="cscoPortalCardIcon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 24V8l9 10 9-10v16M16 18v6" /></svg></span>
+            <div><h2 id="myco-title">MyCO</h2><p>My CSCO</p></div>
+          </div>
+          <p className="cscoPortalDescription">你的专属 CSCO 会议空间。检索报告、规划日程，让收藏与笔记沉淀为自己的知识。</p>
+          <ul className="cscoPortalFeatures"><li>报告检索</li><li>我的收藏</li><li>个人日程</li><li>个人图书馆</li></ul>
+          <Link className="cscoPortalEnter" href={destination} onNavigate={event => {
+            event.preventDefault();
+            window.dispatchEvent(new CustomEvent(PORTAL_ENTER_EVENT, { detail: { destination } }));
+            router.push(destination.split('#', 1)[0]);
+          }} onPointerEnter={warmup} onFocus={warmup} prefetch={false}>
+            {resuming ? '继续进入 MyCO' : '进入 MyCO'}<span aria-hidden="true">↗</span>
+          </Link>
+        </article>
+        <article className="cscoPortalCard cscoPortalPosters" aria-labelledby="posters-title">
+          <header><span className="cscoPortalIndex">02 <i /> 学术海报空间</span><span className="cscoPortalStatus">待接入</span></header>
+          <div className="cscoPortalCardIdentity">
+            <span className="cscoPortalCardIcon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="9" y="5" width="17" height="22" rx="3" /><path d="M6 9H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2M14 11h7M14 16h7M14 21h4" /></svg></span>
+            <div><h2 id="posters-title">CSCO会议海报图鉴</h2><p>CSCO POSTER ATLAS</p></div>
+          </div>
+          <p className="cscoPortalDescription">为会议海报保留一个专属入口。正式地址尚未接入，目前暂不可浏览或检索。</p>
+          <div className="cscoPortalPendingNote">期待与更多学术发现相遇</div>
+          <div className="cscoPortalPending"><span>入口准备中</span><span aria-hidden="true">—</span></div>
+        </article>
+      </section>
+      <footer className="cscoPortalFooter"><span>汇聚真知，传播有度</span><p>笔记与日程仅保存在当前浏览器，请定期导出备份。</p><span className="cscoPortalFooterYear">HUIDU / 2026</span></footer>
+    </div>
   </main>;
 }

@@ -1,0 +1,173 @@
+@media screen {
+  .mycoShell { --page-gutter:var(--myco-gutter); --brand:#5263d6; --ink:#24304c; --muted:#68738c; --paper:#f4f6fc; --line:#e1e5f1; --line-strong:#c9d1e6; --lime:#e5e9ff; --coral:#7c63c6; }
+  .mycoShell .reportsPage { min-height:calc(100svh - 88px); display:flex; flex-direction:column; }
+  .mycoShell .mycoSearch { width:min(880px,100%); margin:0 auto; padding:clamp(70px,12vh,130px) 28px 68px; }
+  .mycoSearchIntro { text-align:center; margin-bottom:34px; }
+  .mycoSearchEyebrow { font-size:12px; letter-spacing:.18em; color:var(--muted); }
+  .mycoSearchIntro h1 { display:flex; justify-content:center; align-items:baseline; margin:22px 0 12px; font:700 clamp(58px,6vw,78px)/1.1 Arial,sans-serif; letter-spacing:-.065em; color:#303e74; }
+  .mycoSearchIntro h1 > span { background:linear-gradient(120deg,#5266d8,#9a6acb); color:transparent; background-clip:text; }
+  .mycoSearchIntro h1 > i { display:block; width:11px; height:11px; border-radius:50%; margin-left:6px; background:linear-gradient(135deg,#a0afff,#7064ce); box-shadow:0 0 0 6px #a7b2f217; }
+  .mycoSearchIntro p { font-size:14px; color:var(--muted); letter-spacing:.06em; margin:0; }
+  .mycoShell .mycoSearch .searchDock { display:block; position:relative; z-index:6; margin:0; padding:0; background:transparent; border:0; border-radius:0; box-shadow:none; backdrop-filter:none; }
+  .mycoShell .mycoSearch .searchField { min-height:70px; padding:8px 9px 8px 23px; border:1px solid #ffffff; border-radius:24px; gap:14px; background:rgba(255,255,255,.8); box-shadow:0 10px 40px #53618e0d,0 0 0 1px #7384b810; backdrop-filter:blur(22px); transition:box-shadow .22s,border-color .22s,background .22s; }
+  .mycoShell .mycoSearch .searchField:focus-within { border-color:#8997e7; background:#fffffff0; box-shadow:0 0 0 4px #a8b3f522,0 12px 42px #53618e14; }
+  .mycoSearch .searchField svg { color:#828dab; flex:none; }
+  .mycoShell .mycoSearch .searchField input { height:48px; min-height:48px; font-size:15px; box-shadow:none; outline:0; }
+  .mycoSearch .searchField input::-webkit-search-cancel-button { display:none; }
+  .mycoShell .mycoSearch .searchField input::placeholder { color:#7c87a1; }
+  .mycoShell .mycoSearch .searchField .mycoSearchSubmit { width:auto; height:48px; padding:0 22px; border-radius:17px; background:linear-gradient(125deg,#5268d7,#7965cb); color:white; font-size:14px; font-weight:600; box-shadow:0 5px 12px #6471cb24; }
+  .mycoShell .mycoSearch .searchField .mycoSearchClear { width:36px; height:36px; font-size:22px; color:var(--muted); background:#edf0fa; }
+  .mycoShell .mycoSearch .filterRow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; padding:22px 0 0; border:0; }
+  .mycoShell .mycoSearch .filterRow label { display:grid; grid-template-columns:1fr; gap:7px; font-weight:500; }
+  .mycoShell .mycoSearch .filterRow label > span { padding-left:12px; font-size:11px; color:var(--muted); letter-spacing:.06em; }
+  .mycoShell .mycoSearch .filterRow select { min-height:43px; width:100%; padding:9px 24px 9px 11px; border:1px solid #ffffffc9; border-radius:13px; color:#596680; background:#ffffff8f; font-size:12px; box-shadow:0 3px 12px #60709304; outline-offset:2px; }
+  .mycoShell .mycoSearch .filterRow select:focus-visible { outline:2px solid var(--brand); }
+  .mycoSearchHint { display:flex; min-height:36px; justify-content:space-between; align-items:center; margin:10px 8px 0; gap:8px; color:var(--muted); font-size:11px; }
+  .mycoSearchHint button { padding:8px 4px; border:0; background:transparent; color:var(--brand); font-size:12px; }
+  .mycoSearchSuggestions { display:flex; align-items:center; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:20px; font-size:12px; color:var(--muted); }
+  .mycoSearchSuggestions > span { margin-right:4px; }
+  .mycoSearchSuggestions button { display:flex; gap:16px; align-items:center; padding:8px 13px; min-height:36px; border:1px solid #ffffffc9; border-radius:999px; background:#ffffff85; color:#65718c; font-size:12px; }
+  .mycoSearchSuggestions button > span { color:#9a9ed3; }
+  .mycoSearchCatalog { margin:30px 0 0; text-align:center; color:var(--muted); font-size:12px; }
+  .mycoSearchCatalog button { display:block; margin:8px auto 0; min-height:40px; border:0; background:transparent; color:var(--brand); font-size:12px; }
+  .mycoShell .mycoSearch.hasResults { width:100%; padding:30px var(--page-gutter) 16px; }
+  .mycoSearch.hasResults .mycoSearchIntro { display:flex; align-items:center; gap:18px; text-align:left; margin-bottom:20px; }
+  .mycoSearch.hasResults .mycoSearchEyebrow { display:none; }
+  .mycoSearch.hasResults .mycoSearchIntro h1 { margin:0; font-size:32px; }
+  .mycoSearch.hasResults .mycoSearchIntro h1 i { width:6px; height:6px; }
+  .mycoSearch.hasResults .mycoSearchIntro p { font-size:12px; }
+  .mycoShell .collectionToolbar { gap:14px; margin:0 var(--page-gutter) 24px; padding:14px 0; border-bottom:1px solid var(--line); }
+  .mycoResultCount { margin:0; color:var(--muted); font-size:13px; }
+  .mycoResultCount b { color:var(--brand); font-weight:650; margin:0 4px; }
+  .mycoResultCount > span { margin-left:22px; }
+  .mycoShell .sortSelect { font-size:12px; }
+  .mycoShell .sortSelect select { font-size:12px; min-height:38px; background:#ffffffa1; border:1px solid white; border-radius:12px; }
+  .mycoShell .collectionActions button { background:#ffffffa1; border-color:white; border-radius:12px; font-size:12px; }
+  .mycoShell .reportSection { padding:0 var(--page-gutter) 48px; scroll-margin-top:90px; }
+  .mycoShell .sectionHeading { gap:16px; margin-bottom:20px; flex-wrap:wrap; }
+  .mycoShell .sectionHeading h2 { font-size:18px; font-weight:650; letter-spacing:0; }
+  .mycoShell .sectionHeadingActions { gap:12px; flex-wrap:wrap; }
+  .mycoShell .sectionHeadingActions p { color:var(--muted); font-size:11px; }
+  .mycoShell .favoritePageButton { border-color:white; background:#ffffffa1; border-radius:12px; min-height:38px; font-size:12px; }
+  .mycoShell .favoritePageButton.isComplete { color:var(--brand); background:#e6eaff; }
+  .mycoShell .cardGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+  .mycoShell .reportCard { min-height:0; padding:24px; border:1px solid #fffffff0; border-radius:22px; background:linear-gradient(125deg,#fffffff0,#ffffffa8); box-shadow:0 5px 24px #52618e08; backdrop-filter:blur(16px); transition:transform .22s,box-shadow .22s,border-color .22s; }
+  .mycoShell .reportCard:hover { transform:translateY(-3px); border-color:#bec8ef; box-shadow:0 14px 32px #5366a315; }
+  .mycoShell .reportCard:active { transform:translateY(0) scale(.995); }
+  .mycoShell .reportCard h3 { font:600 17px/1.7 Arial,"Microsoft YaHei",sans-serif; margin:16px 0; letter-spacing:0; }
+  .mycoShell .reportCard .contentTypeTag,.mycoShell .reportCard .cancerTag { border:0; border-radius:8px; font-size:10px; padding:5px 8px; }
+  .mycoShell .reportCard .contentTypeTag { background:#edf0ff; color:#5367b8; }
+  .mycoShell .reportCard .cancerTag { background:#f1ecfa; color:#8263a7; }
+  .mycoShell .reportCard .directionRow span { font-size:10px; color:var(--muted); background:#f0f3fa; border:0; border-radius:6px; }
+  .mycoShell .reportCard .programLine { border-color:var(--line); padding:12px 0; }
+  .mycoShell .reportCard .programLine strong { font-size:12px; font-weight:500; }
+  .mycoShell .reportCard .programLine > span,.mycoShell .reportCard .programLine > b { font-size:10px; }
+  .mycoShell .reportCard dl { margin:16px 0; }
+  .mycoShell .reportCard dl dd { font-size:12px; }
+  .mycoShell .reportCard dl dt { font-size:11px; }
+  .mycoShell .reportCard .cardActions { border-color:var(--line); gap:8px; margin-top:auto; }
+  .mycoShell .reportCard .mobileScheduleButton,.mycoShell .reportCard .favoriteButton { min-height:38px; padding:7px 12px; border:1px solid #e3e7f3; border-radius:11px; font-size:12px; background:#ffffff9c; color:#657293; }
+  .mycoShell .reportCard .isScheduled,.mycoShell .reportCard .isFavorite { background:#e8ecff; color:#4e60b6; border-color:#d3dcff; }
+  .mycoShell .reportCard .openButton { font-size:10px; color:var(--muted); }
+  .mycoSimilarDivider { grid-column:1/-1; margin:22px 0 4px; }
+  .mycoSimilarDivider > div { display:flex; align-items:center; gap:12px; color:#85719e; }
+  .mycoSimilarDivider > div::after { content:""; flex:1; height:1px; background:linear-gradient(90deg,#c5b9de,#c5b9de20); }
+  .mycoSimilarDivider h3 { margin:0; font-size:14px; font-weight:600; }
+  .mycoSimilarDivider span { font-size:11px; }
+  .mycoSimilarDivider p { margin:9px 0 0; font-size:12px; color:var(--muted); }
+  .mycoShell .emptyState { min-height:240px; border:1px dashed #cbd3e9; border-radius:24px; background:#ffffff65; }
+  .mycoShell .emptyState > b { font-family:inherit; font-size:19px; }
+  .mycoShell .emptyState > a { min-height:44px; padding:10px 18px; border-radius:12px; background:var(--brand); color:white; }
+  .mycoShell .pagination button { background:#ffffffa6; border-color:white; border-radius:12px; }
+  .mycoShell .pagination button[aria-current="page"] { background:var(--brand); color:white; }
+  .mycoCollectionHeading { margin:30px var(--page-gutter) 0; }
+  .mycoCollectionHeading > span { color:var(--muted); font-size:11px; letter-spacing:.16em; }
+  .mycoCollectionHeading h1 { font:650 30px/1.4 Arial,"Microsoft YaHei",sans-serif; margin:8px 0; }
+  .mycoCollectionHeading p { font-size:13px; color:var(--muted); }
+  .mycoShell .siteFooter { display:flex; margin-top:auto; gap:24px; padding:22px var(--page-gutter); background:transparent; border-color:#dfe5f280; }
+  .mycoShell .siteFooter .huiduBrand { flex:none; }
+  .mycoShell .siteFooter .huiduBrand img { width:64px; }
+  .mycoShell .siteFooter .huiduSlogan { display:none; }
+  .mycoShell .siteFooter > p { font-size:10px; color:#818ca5; max-width:650px; }
+  .mycoShell .siteFooter > a { flex:none; font-size:11px; font-weight:400; margin-left:auto; border:0; color:var(--muted); }
+  .mycoShell .mySchedule { padding:32px var(--page-gutter) 48px; gap:26px; grid-template-columns:1fr; min-height:auto; background:transparent; color:var(--ink); }
+  .mycoShell .scheduleSummary { position:static; }
+  .mycoShell .scheduleSummary .sectionNo { display:none; }
+  .mycoShell .scheduleSummary > p:first-of-type { margin-top:0; color:var(--muted); }
+  .mycoShell .scheduleSummary h2 { font-size:30px; }
+  .mycoShell .scheduleDescription { max-width:800px; margin-top:16px; font-size:13px; color:var(--muted); }
+  .mycoShell .scheduleSummary dl { margin-top:20px; border-color:var(--line); }
+  .mycoShell .scheduleSummary dt { color:var(--brand); font-family:inherit; font-size:26px; }
+  .mycoShell .scheduleSummary dd { color:var(--muted); font-size:12px; }
+  .mycoShell .scheduleActions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+  .mycoShell .scheduleActions button { min-height:42px; font-size:12px; border-radius:12px; border-color:var(--line); }
+  .mycoShell .scheduleAtlasButton { background:linear-gradient(125deg,#5369c9,#8773be); }
+  .mycoShell .scheduleAtlasButton b { color:white; }
+  .mycoShell .scheduleCart { background:#ffffffb8; border-color:#fff; box-shadow:0 8px 32px #52618e0a; border-radius:22px; }
+  .mycoShell .scheduleCart > header { background:#ffffff70; border-color:var(--line); }
+  .mycoShell .scheduleCartTools > b { color:var(--muted); border-color:var(--line); }
+  .mycoShell .scheduleViewSwitch { border-color:var(--line); }
+  .mycoShell .scheduleViewSwitch button { color:var(--muted); font-size:12px; }
+  .mycoShell .scheduleViewSwitch button[aria-pressed="true"] { color:white; }
+  .mycoShell .scheduleDays { scrollbar-color:#cad1e6 transparent; }
+  .mycoShell .scheduleDayGroup > header { background:#e9edfb; color:#5568ad; border-color:var(--line); }
+  .mycoShell .scheduleItem { border-color:var(--line); }
+  .mycoShell .scheduleItem > time { color:var(--brand); }
+  .mycoShell .scheduleItemOpen { color:var(--ink); }
+  .mycoShell .scheduleItemOpen small,.mycoShell .scheduleItemOpen span { color:var(--muted); }
+  .mycoShell .scheduleItemVenue { color:var(--brand)!important; }
+  .mycoShell .scheduleItemOpen:hover strong { color:var(--brand); }
+  .mycoShell .scheduleItem.isAttended { background:#eaeffe; }
+  .mycoShell .scheduleItem.isAttended .scheduleItemOpen strong { color:var(--ink); }
+  .mycoShell .scheduleItemCheckIn,.mycoShell .scheduleItemRemove { color:var(--muted); border-color:var(--line); }
+  .mycoShell .scheduleItemCheckIn[aria-pressed="true"],.mycoShell .scheduleItemCheckIn:hover { color:white; }
+  .mycoShell .scheduleEmpty > span { color:var(--brand); border-color:var(--line); }
+  .mycoShell .scheduleEmpty p { color:var(--muted); font-size:13px; }
+  .mycoShell .libraryPage { min-height:auto; }
+  .mycoShell :is(.libraryPrivacy,.libraryToolbar,.libraryContinue,.libraryCard) { border-radius:20px; border-color:#fff; background:#ffffffa6; }
+  .mycoShell .libraryHeading h1 { font:650 30px/1.4 Arial,"Microsoft YaHei",sans-serif; }
+  .mycoShell .personalLibrary { padding-right:var(--page-gutter); padding-left:var(--page-gutter); }
+  .mycoShell :is(button,a,select) { transition:transform .18s,box-shadow .18s,background .18s,color .18s; }
+  .mycoShell :is(button,a):not(:disabled):hover { filter:brightness(.98); }
+  .mycoShell :is(button,a):not(:disabled):active { transform:scale(.97); }
+  .mycoShell :is(button,a,select):focus-visible { outline:2px solid #6677dc; outline-offset:4px; }
+  @media(min-width:1700px) { .mycoShell .cardGrid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media(max-width:1100px) and (min-width:901px) { .mycoShell .cardGrid { grid-template-columns:1fr; } }
+  @media(max-width:600px) {
+    .mycoShell .mycoSearch { padding:52px 18px 44px; }
+    .mycoSearchEyebrow { font-size:10px; letter-spacing:.12em; }
+    .mycoSearchIntro { margin-bottom:26px; }
+    .mycoSearchIntro h1 { font-size:60px; margin-top:18px; }
+    .mycoSearchIntro p { font-size:12px; }
+    .mycoShell .mycoSearch .searchField { padding:6px 6px 6px 14px; gap:8px; border-radius:20px; min-height:60px; }
+    .mycoShell .mycoSearch .searchField input { font-size:14px; height:44px; min-height:44px; }
+    .mycoShell .mycoSearch .searchField .mycoSearchSubmit { padding:0 14px; height:44px; border-radius:15px; font-size:13px; }
+    .mycoSearchSubmit span { display:none; }
+    .mycoShell .mycoSearch .searchField .mycoSearchClear { width:26px; height:30px; }
+    .mycoSearch .searchField svg { width:18px; }
+    .mycoShell .mycoSearch .filterRow { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding-top:22px; }
+    .mycoShell .mycoSearch .filterRow label:last-child { grid-column:1/-1; }
+    .mycoShell .mycoSearch .filterRow select { min-height:44px; font-size:12px; }
+    .mycoSearchSuggestions { gap:8px; }
+    .mycoSearchSuggestions > span { display:none; }
+    .mycoShell .mycoSearch.hasResults { padding:22px var(--page-gutter) 12px; }
+    .mycoSearch.hasResults .mycoSearchIntro p { font-size:10px; }
+    .mycoShell .cardGrid { grid-template-columns:1fr; gap:16px; }
+    .mycoShell .reportCard { padding:20px; }
+    .mycoShell .collectionToolbar { margin-bottom:20px; gap:10px; }
+    .mycoResultCount { font-size:12px; }
+    .mycoResultCount > span { margin-left:10px; }
+    .mycoShell .sortSelect { margin-left:0; }
+    .mycoShell .sectionHeadingActions { justify-content:space-between; width:100%; }
+    .mycoShell .siteFooter { gap:14px; padding:22px var(--page-gutter) calc(24px + env(safe-area-inset-bottom)); flex-wrap:wrap; }
+    .mycoShell .siteFooter > p { order:3; width:100%; }
+    .mycoShell .mySchedule { padding-top:24px; }
+    .mycoShell .scheduleSummary h2 { font-size:27px; }
+    .mycoShell .scheduleActions button { flex:1 1 45%; }
+    .mycoShell .scheduleCart > header { padding:18px; }
+    .mycoShell .scheduleItem { grid-template-columns:1fr; gap:12px; padding:18px; }
+    .mycoShell .scheduleItemActions { grid-column:auto; }
+    .mycoShell .scheduleSummary dl { gap:20px; }
+  }
+  @media(prefers-reduced-motion:reduce) { .mycoShell :is(button,a,select,.reportCard,.searchField) { transition:none; animation:none; } .mycoShell .reportCard:hover,.mycoShell :is(button,a):not(:disabled):active { transform:none; } }
+}
