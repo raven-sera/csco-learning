@@ -6,12 +6,13 @@ import { requestNotebook } from '../lib/libraryTypes';
 import { sortReportsByDateTime, type Report } from '../lib/reports';
 import { downloadCalendar, nextScheduledReport, reportInterval, scheduleConflicts } from '../lib/scheduleTools';
 import { useDialog } from '../lib/useDialog';
+import ScheduleTimeline from './ScheduleTimeline';
 import './schedule-workspace.css';
 
 const UNKNOWN_DAY = '日期待确认';
 const reportDay = (report: Report) => report.dateTime.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? UNKNOWN_DAY;
 const dayLabel = (day: string) => day === UNKNOWN_DAY ? day : day.replaceAll('-', '.');
-const reportTime = (report: Report) => report.dateTime.replace(/^\d{4}-\d{2}-\d{2}\s*/, '') || '时间待确认';
+const reportTime = (report: Report) => report.dateTime.replace(/^\d{4}-\d{2}-\d{2}\s*/, '').replace(/^(上午|下午|晚上|中午)\s*/, '') || '时间待确认';
 
 export default function MySchedule({
   scheduledReports, attendedIds, celebratingReportId, onOpen, onLocate, onCheckIn,
@@ -30,9 +31,9 @@ export default function MySchedule({
   noteIds: ReadonlySet<number>;
 }) {
   const [view, setView] = useState<'list' | 'calendar'>('list');
-  const [selectedDay, setSelectedDay] = useState('');
+  const [selectedDay, setSelectedDay] = useState('all');
   const [conflictsOnly, setConflictsOnly] = useState(false);
-  const [pagination, setPagination] = useState({ reports: scheduledReports, capacity: 1, page: 0 });
+  const [pagination, setPagination] = useState({ reports: scheduledReports, capacity: 10, page: 0 });
   const { capacity } = pagination;
   const page = pagination.reports === scheduledReports ? pagination.page : 0;
   const setPage = (next: number) => setPagination(current => ({ ...current, reports: scheduledReports, page: next }));
@@ -60,11 +61,12 @@ export default function MySchedule({
     return result;
   }, [ordered]);
   const days = useMemo(() => [...groups.keys()].sort((a, b) => a === UNKNOWN_DAY ? 1 : b === UNKNOWN_DAY ? -1 : a.localeCompare(b)), [groups]);
-  const day = groups.has(selectedDay) ? selectedDay : days[0] ?? '';
+  const day = selectedDay === 'all' ? 'all' : groups.has(selectedDay) ? selectedDay : days[0] ?? 'all';
   const dayIndex = days.indexOf(day);
   const conflicts = useMemo(() => scheduleConflicts(ordered), [ordered]);
-  const dayReports = groups.get(day);
+  const dayReports = day === 'all' ? ordered : groups.get(day);
   const filtered = useMemo(() => (dayReports ?? []).filter(report => !conflictsOnly || conflicts.has(report.id)), [dayReports, conflictsOnly, conflicts]);
+  const calendarReports = useMemo(() => conflictsOnly ? ordered.filter(report => conflicts.has(report.id)) : ordered, [ordered, conflictsOnly, conflicts]);
   const nextReport = useMemo(() => nextScheduledReport(ordered, now), [ordered, now]);
   const ongoing = Boolean(nextReport && reportInterval(nextReport)!.start <= now);
   const attendedCount = ordered.reduce((count, report) => count + Number(attendedIds.has(report.id)), 0);
@@ -81,12 +83,11 @@ export default function MySchedule({
     const grid = gridRef.current;
     if (!viewport || !grid) return;
     const measure = () => {
+      if (viewport.clientHeight <= 0) return;
       const style = window.getComputedStyle(grid);
       const rowHeight = Number.parseFloat(style.getPropertyValue('--schedule-row-size'));
       const gap = Number.parseFloat(style.rowGap) || 0;
-      const columns = style.gridTemplateColumns.split(' ').filter(Boolean).length || 1;
-      const rows = Math.max(1, Math.floor((viewport.clientHeight + gap) / (rowHeight + gap)));
-      const nextCapacity = rows * columns;
+      const nextCapacity = Math.max(1, Math.floor((viewport.clientHeight + gap) / (rowHeight + gap)));
       setPagination(current => current.capacity === nextCapacity ? current : { ...current, capacity: nextCapacity, page: 0 });
     };
     measure();
@@ -104,6 +105,7 @@ export default function MySchedule({
       <header className="compactScheduleHeader">
         <div className="compactScheduleHeading"><h1 id="my-schedule-title">我的日程</h1><span title={`${ordered.length} 场报告，${days.length} 个会议日，${attendedCount} 场已打卡`}>{ordered.length} 场 · 已打卡 {attendedCount}</span></div>
         <div className="compactScheduleTopActions">
+          <button className="compactScheduleConflictFilter" type="button" aria-pressed={conflictsOnly} title="只看时间重叠的报告" onClick={() => { setConflictsOnly(value => !value); setPage(0); }}>冲突 {conflicts.size}</button>
           <div className="compactScheduleView" role="group" aria-label="日程呈现方式">
             <button type="button" aria-pressed={view === 'list'} onClick={() => { setView('list'); setPage(0); }}>清单</button>
             <button type="button" aria-pressed={view === 'calendar'} onClick={() => { setView('calendar'); setPage(0); }}>日历</button>
@@ -112,37 +114,36 @@ export default function MySchedule({
         </div>
       </header>
 
+      {view === 'list' ? <>
       <div className="compactScheduleDatebar">
         <div className="compactScheduleDayControls" role="group" aria-label="选择会议日">
           <button type="button" aria-label="上一个会议日" disabled={dayIndex <= 0} onClick={() => selectDay(days[dayIndex - 1])}>‹</button>
           <select aria-label="会议日期" value={day} disabled={!days.length} onChange={event => selectDay(event.target.value)}>
-            {!days.length && <option value="">暂无日程</option>}
+            <option value="all">全部日期 · {ordered.length} 场</option>
             {days.map(value => <option key={value} value={value}>{dayLabel(value)} · {groups.get(value)!.length} 场</option>)}
           </select>
-          <button type="button" aria-label="下一个会议日" disabled={dayIndex < 0 || dayIndex >= days.length - 1} onClick={() => selectDay(days[dayIndex + 1])}>›</button>
+          <button type="button" aria-label="下一个会议日" disabled={!days.length || dayIndex >= days.length - 1} onClick={() => selectDay(days[dayIndex + 1])}>›</button>
         </div>
-        <button className="compactScheduleConflictFilter" type="button" aria-pressed={conflictsOnly} title="仅显示所选日期中有时间重叠的报告；切换日期查看其他冲突" onClick={() => { setConflictsOnly(value => !value); setPage(0); }}>冲突 {conflicts.size}</button>
+        <span className="compactScheduleListHint">圆圈用于现场打卡</span>
       </div>
 
       <div className="compactScheduleNext">
         {nextReport ? <button type="button" onClick={() => setActionReport(nextReport)} aria-haspopup="dialog" title={`${ongoing ? '正在进行' : '下一场'}：${nextReport.dateTime} · ${nextReport.sourceTitle} · ${nextReport.speaker}`}><b>{ongoing ? '正在进行' : '下一场'}</b><span>{nextReport.dateTime.replace('2026-', '')} · {nextReport.sourceTitle}</span><em>记录 / 会场 ›</em></button> : <span>{ordered.length ? '已安排的定时报告均已结束或时间待确认' : '选择报告加入日程，按会议日查看安排'}</span>}
       </div>
 
-      <div className={`compactScheduleViewport is-${view}`} ref={viewportRef}>
-        <div className="compactScheduleGrid" ref={gridRef} role="list" aria-label={`${dayLabel(day)}${view === 'calendar' ? '日历' : '时间清单'}`}>
+      <div className="compactScheduleViewport" ref={viewportRef}>
+        <div className="compactScheduleGrid" ref={gridRef} role="list" aria-label={day === 'all' ? '全部听会待办' : `${dayLabel(day)}听会待办`}>
           {visible.map(report => {
             const attended = attendedIds.has(report.id);
             const isNext = report.id === nextReport?.id;
             const conflict = conflicts.has(report.id);
             return <article key={report.id} role="listitem" className={`compactScheduleReport${attended ? ' isAttended' : ''}${isNext ? ' isNext' : ''}${celebratingReportId === report.id ? ' isCelebrating' : ''}`}>
-              <div className="compactScheduleReportTime"><time title={report.dateTime}>{reportTime(report)}</time><span>{conflict ? '时间冲突' : isNext ? ongoing ? '正在进行' : '下一场' : attended ? '已打卡' : dayLabel(day)}</span></div>
+              <button className="compactScheduleCheckIn" type="button" aria-pressed={attended} aria-label={`${attended ? '查看打卡' : '现场打卡'}：${report.sourceTitle}`} title={attended ? '查看我的打卡' : '现场打卡'} onClick={() => onCheckIn(report)}><span aria-hidden="true">{attended ? '✓' : ''}</span></button>
               <button className="compactScheduleReportOpen" type="button" onClick={() => onOpen(report)} title={`${report.sourceTitle}\n${report.speaker} · ${report.institution}\n${report.dateTime} · ${report.location}`} aria-label={`查看报告：${report.sourceTitle}；${report.speaker}；${report.dateTime}`}>
-                <strong>{report.sourceTitle}</strong><span>{report.speaker || '讲者待确认'}<i> · {report.location}</i></span>
+                <strong>{report.sourceTitle}</strong><span>{report.speaker || '讲者待确认'}<i> · {report.location}</i>{conflict && <b className="compactScheduleConflictMark"> · 时间重叠</b>}</span>
               </button>
-              <div className="compactScheduleReportActions">
-                <button className="scheduleItemCheckIn" type="button" aria-pressed={attended} aria-label={`${attended ? '查看打卡' : '现场打卡'}：${report.sourceTitle}`} onClick={() => onCheckIn(report)}>{attended ? '已打卡' : '打卡'}</button>
-                <button className="compactScheduleReportMore" type="button" aria-label={`更多操作：${report.sourceTitle}`} aria-haspopup="dialog" onClick={() => setActionReport(report)}>更多</button>
-              </div>
+              <div className="compactScheduleReportTime"><time title={report.dateTime}>{reportTime(report)}</time><span>{day === 'all' ? dayLabel(reportDay(report)).replace(/^\d{4}\./, '') : isNext ? ongoing ? '正在进行' : '下一场' : report.kind}</span></div>
+              <button className="compactScheduleReportMore" type="button" aria-label={`更多操作：${report.sourceTitle}`} title="报告操作" aria-haspopup="dialog" onClick={() => setActionReport(report)}>•••</button>
             </article>;
           })}
         </div>
@@ -153,6 +154,7 @@ export default function MySchedule({
         <span aria-live="polite">{filtered.length ? `${currentPage * capacity + 1}–${Math.min((currentPage + 1) * capacity, filtered.length)} / ${filtered.length} 场` : '0 场'}<small> · 按时间排序</small></span>
         <div><button type="button" aria-label="上一页日程" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>‹</button><span aria-live="polite">{currentPage + 1} / {pageCount}</span><button type="button" aria-label="下一页日程" disabled={currentPage >= pageCount - 1} onClick={() => setPage(currentPage + 1)}>›</button></div>
       </footer>
+      </> : ordered.length > 0 && conflictsOnly && !calendarReports.length ? <div className="compactScheduleViewport"><div className="compactScheduleEmpty" role="status"><strong>没有时间重叠的报告</strong><button type="button" onClick={() => setConflictsOnly(false)}>显示全部日程</button></div></div> : <ScheduleTimeline reports={calendarReports} day={day === 'all' ? days[0] ?? '' : day} onDayChange={selectDay} attendedIds={attendedIds} now={now} onOpen={setActionReport} />}
 
       {(toolsOpen || reportForActions) && <div className="compactScheduleDialogBackdrop" onClick={event => { if (event.target === event.currentTarget) closeDialog(); }}>
         <section id="compact-schedule-dialog" className="compactScheduleDialog" role="dialog" aria-modal="true" aria-labelledby="compact-schedule-dialog-title">

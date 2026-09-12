@@ -99,7 +99,7 @@
   .checkInModalHeader > button { min-width:44px; min-height:44px; }
 
   @media (min-width:1600px) {
-    .reportsPage,.schedulePage { max-width:1680px; margin:auto; }
+    .reportsPage { max-width:1680px; margin:auto; }
   }
   @media (max-width:1050px) {
     .filterRow { grid-template-columns:repeat(3,minmax(0,1fr)); }
@@ -153,9 +153,7 @@
     .scheduleCartTools { flex-direction:column; align-items:stretch; gap:10px; }
     .scheduleViewSwitch { display:grid; grid-template-columns:repeat(3,1fr); }
     .scheduleItem { grid-template-columns:1fr; gap:10px; }
-    .scheduleItem > time,.scheduleItemOpen,.scheduleItemActions { grid-column:auto; grid-row:auto; }
-    .scheduleItemActions { display:flex; flex-wrap:wrap; gap:8px; }
-    .scheduleItemActions button { min-height:44px; }
+    .scheduleItem > time,.scheduleItemOpen { grid-column:auto; grid-row:auto; }
     .schedulePage .mobileActionHub { margin-bottom:96px; }
     .detailOverlay { overscroll-behavior:contain; }
     .detailMeta { gap:18px; }

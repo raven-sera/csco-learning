@@ -1,0 +1,138 @@
+.scheduleTimeline {
+  --timeline-rail:52px;
+  display:flex; flex:1; flex-direction:column; gap:7px; min-width:0; min-height:0;
+  color:var(--ink); overflow:hidden;
+}
+.scheduleTimeline *, .scheduleTimeline *::before, .scheduleTimeline *::after,
+.scheduleTimelineBackdrop *, .scheduleTimelineBackdrop *::before, .scheduleTimelineBackdrop *::after { box-sizing:border-box; }
+.scheduleTimeline :is(button,select), .scheduleTimelineBackdrop button {
+  min-width:0; min-height:30px; margin:0; padding:5px 9px; border:1px solid rgba(37,76,175,.16);
+  border-radius:9px; color:#0c1b3a; background:rgba(255,255,255,.74); font:inherit; font-size:12px;
+  line-height:1.3; cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+.scheduleTimeline :is(button,select):focus-visible, .scheduleTimelineBackdrop button:focus-visible { outline:2px solid #254caf; outline-offset:-2px; }
+.scheduleTimeline button:disabled { opacity:.35; cursor:default; }
+.scheduleTimelineHeader { display:flex; flex:none; justify-content:space-between; align-items:center; gap:8px; min-width:0; }
+.scheduleTimelineHeader h2 { flex:none; margin:0; font-size:21px; line-height:1.3; font-weight:750; letter-spacing:-.035em; }
+.scheduleTimelineHeaderActions { display:flex; justify-content:flex-end; align-items:center; gap:6px; min-width:0; }
+.scheduleTimelineView { display:flex; padding:2px; gap:2px; border:1px solid rgba(37,76,175,.12); border-radius:11px; background:rgba(238,243,251,.8); }
+.scheduleTimeline .scheduleTimelineView button { min-height:26px; padding:3px 10px; border:0; background:transparent; }
+.scheduleTimeline .scheduleTimelineView button[aria-pressed="true"] { color:#fff; background:#254caf; }
+.scheduleTimeline .scheduleTimelineListTrigger { color:#254caf; font-weight:700; white-space:nowrap; background:rgba(37,76,175,.09); }
+.scheduleTimeline .scheduleTimelineUntimedTrigger { white-space:nowrap; background:rgba(252,241,80,.32); }
+.scheduleTimelineDateStrip { display:flex; flex:none; align-items:center; gap:8px; min-width:0; }
+.scheduleTimeline .scheduleTimelineArrow { flex:none; width:30px; padding:0; font-size:23px; line-height:1; }
+.scheduleTimelineDates { display:flex; flex:1; justify-content:space-evenly; gap:4px; min-width:0; }
+.scheduleTimeline .scheduleTimelineDate { display:flex; flex:1; flex-direction:column; align-items:center; gap:3px; max-width:100px; min-height:0; padding:2px; border:0; background:transparent; }
+.scheduleTimeline .scheduleTimelineDate[aria-pressed="true"] { color:#254caf; background:transparent; }
+.scheduleTimelineWeekday { font-size:12px; line-height:1; color:#56637a; }
+.scheduleTimelineDateCircle { display:grid; place-items:center; width:32px; height:32px; border-radius:50%; font-size:19px; line-height:1; font-weight:650; }
+.scheduleTimelineDate[aria-pressed="true"] .scheduleTimelineDateCircle { color:#fff; background:#254caf; box-shadow:0 3px 9px rgba(37,76,175,.18); }
+.scheduleTimelineToolbar { display:flex; flex:none; align-items:center; gap:5px; min-width:0; }
+.scheduleTimelineToolbar select { font-variant-numeric:tabular-nums; }
+.scheduleTimelineWindowHint { margin-left:auto; color:#56637a; font-size:12px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.scheduleTimelineStage { display:flex; flex:1; flex-direction:column; min-width:0; min-height:0; border:1px solid rgba(37,76,175,.16); border-radius:12px; background:rgba(255,255,255,.62); overflow:hidden; }
+.scheduleTimelineColumnHeaders { display:grid; grid-template-columns:var(--timeline-rail) repeat(var(--timeline-days),minmax(0,1fr)); flex:none; align-items:center; background:rgba(238,243,251,.82); }
+.scheduleTimelineZone { color:#56637a; font-size:10px; text-align:center; }
+.scheduleTimeline .scheduleTimelineColumnDate { min-height:27px; padding:4px 3px; border:0; border-left:1px solid rgba(37,76,175,.12); border-radius:0; background:transparent; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.scheduleTimeline .scheduleTimelineColumnDate.isSelected { color:#254caf; font-weight:750; }
+.scheduleTimelineBody { display:flex; flex:1; min-height:0; min-width:0; position:relative; }
+.scheduleTimelineRail { flex:none; width:var(--timeline-rail); position:relative; color:#56637a; font-size:11px; font-variant-numeric:tabular-nums; }
+.scheduleTimelineRail > span { position:absolute; right:7px; line-height:1; transform:translateY(-50%); }
+.scheduleTimelineRail > span.isFirst { transform:translateY(2px); }
+.scheduleTimelineRail > span.isLast { transform:translateY(calc(-100% - 2px)); }
+.scheduleTimelineColumns { position:relative; display:grid; grid-template-columns:repeat(var(--timeline-days),minmax(0,1fr)); flex:1; min-width:0; min-height:0; }
+.scheduleTimelineDay { position:relative; min-width:0; min-height:0; border-left:1px solid rgba(37,76,175,.16); }
+.scheduleTimelineRule { position:absolute; right:0; left:0; height:0; border-top:1px solid rgba(37,76,175,.12); pointer-events:none; }
+.scheduleTimeline .scheduleTimelineEvent {
+  position:absolute; z-index:1; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
+  --event-accent:#254caf;
+  min-height:0; min-width:0; margin:0; padding:0; overflow:hidden; text-align:left; border:0;
+  container-type:size; container-name:schedule-event;
+  border-radius:5px; background:rgba(37,76,175,.14); color:#0c1b3a;
+  box-shadow:inset 3px 0 0 var(--event-accent),inset 0 0 0 1px rgba(37,76,175,.2); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+.scheduleTimeline .scheduleTimelineEvent.tone-1 { --event-accent:#ec6749; background:rgba(236,103,73,.2); }
+.scheduleTimeline .scheduleTimelineEvent.tone-2 { --event-accent:#0c1b3a; background:rgba(238,243,251,.88); }
+.scheduleTimeline .scheduleTimelineEvent.isAttended { --event-accent:#254caf; background:rgba(252,241,80,.35); }
+.scheduleTimeline .scheduleTimelineEvent.continuesBefore { border-top-left-radius:0; border-top-right-radius:0; }
+.scheduleTimeline .scheduleTimelineEvent.continuesAfter { border-bottom-left-radius:0; border-bottom-right-radius:0; }
+.scheduleTimelineEvent.continuesBefore::before, .scheduleTimelineEvent.continuesAfter::after { content:""; position:absolute; left:0; right:0; border-top:1px dashed var(--event-accent); pointer-events:none; }
+.scheduleTimelineEvent.continuesBefore::before { top:0; }
+.scheduleTimelineEvent.continuesAfter::after { bottom:0; }
+.scheduleTimeline .scheduleTimelineEvent:hover { z-index:2; box-shadow:inset 3px 0 0 var(--event-accent),inset 0 0 0 1px #254caf; }
+.scheduleTimeline .scheduleTimelineEvent:focus-visible { z-index:3; }
+.scheduleTimelineEvent > :is(strong,span) { padding:0 6px; }
+.scheduleTimelineEvent strong { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:1; flex:none; overflow:hidden; overflow-wrap:anywhere; font-size:13px; line-height:1.35; font-weight:700; }
+.scheduleTimelineEventTime, .scheduleTimelineEventDetail { display:none; flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; line-height:1.4; }
+.scheduleTimelineEventDetail { color:#56637a; }
+.scheduleTimelineCheck { color:#254caf; }
+.scheduleTimelineNow { position:absolute; right:0; left:0; z-index:4; height:0; border-top:2px solid #ec6749; pointer-events:none; }
+.scheduleTimelineNow > span { position:absolute; left:-4px; top:-4px; width:6px; height:6px; border-radius:50%; background:#ec6749; }
+.scheduleTimelineEmpty, .scheduleTimelineWindowEmpty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-width:0; min-height:0; padding:12px; text-align:center; }
+.scheduleTimelineEmpty { flex:1; }
+.scheduleTimelineEmpty strong, .scheduleTimelineWindowEmpty strong { font-size:15px; }
+.scheduleTimelineEmpty > span, .scheduleTimelineWindowEmpty > span { color:#56637a; font-size:12px; line-height:1.5; }
+.scheduleTimelineWindowEmpty { position:absolute; inset:0; pointer-events:none; }
+.scheduleTimelineWindowEmpty > button { pointer-events:auto; background:rgba(255,255,255,.9); }
+.scheduleTimelineBackdrop { position:fixed; inset:0; z-index:170; display:flex; justify-content:flex-end; padding:16px; background:rgba(12,27,58,.28); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.scheduleTimelineDialog { display:flex; flex-direction:column; width:min(450px,100%); max-height:100%; min-height:0; padding:18px; border:1px solid rgba(255,255,255,.86); border-radius:20px; color:#0c1b3a; background:rgba(238,243,251,.97); box-shadow:0 18px 60px rgba(12,27,58,.2); }
+.scheduleTimelineDialog > header { display:flex; flex:none; align-items:flex-start; justify-content:space-between; gap:12px; padding-bottom:12px; }
+.scheduleTimelineDialog > header > div { min-width:0; }
+.scheduleTimelineDialog > header > button { flex:none; }
+.scheduleTimelineDialog h2 { margin:0; font-size:20px; line-height:1.3; }
+.scheduleTimelineDialog header p { margin:6px 0 0; color:#56637a; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+.scheduleTimelineDialogList { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+.scheduleTimelineBackdrop .scheduleTimelineDialogReport { display:flex; flex-direction:column; gap:7px; width:100%; margin:0 0 8px; padding:12px; border-radius:12px; text-align:left; white-space:normal; overflow-wrap:anywhere; }
+.scheduleTimelineDialogReport strong { font-size:14px; line-height:1.5; }
+.scheduleTimelineDialogReport > span { color:#56637a; font-size:12px; line-height:1.5; }
+.scheduleTimelineDialogTime { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:5px; }
+.scheduleTimelineDialogTime em { padding:1px 5px; border-radius:5px; font-size:12px; font-style:normal; color:#56637a; background:#eef3fb; }
+.scheduleTimelineDialogTime em.isAttended { color:#254caf; background:rgba(252,241,80,.52); }
+.scheduleTimelineDialogReport > .scheduleTimelineDialogOpen { color:#254caf; font-weight:650; }
+.scheduleTimelineDialogEmpty { color:#56637a; font-size:13px; line-height:1.6; }
+@container schedule-event (max-height:17px) {
+  .scheduleTimelineEvent strong { visibility:hidden; }
+}
+@container schedule-event (min-height:36px) {
+  .scheduleTimelineEventTime { display:block; }
+}
+@container schedule-event (min-height:54px) {
+  .scheduleTimelineEvent strong { -webkit-line-clamp:2; }
+}
+@container schedule-event (min-height:74px) {
+  .scheduleTimelineEventDetail { display:block; }
+}
+@container schedule-event (min-height:94px) {
+  .scheduleTimelineEvent strong { -webkit-line-clamp:3; }
+}
+@media (max-width:700px) {
+  .scheduleTimeline { --timeline-rail:44px; gap:5px; }
+  .scheduleTimelineHeader { gap:5px; }
+  .scheduleTimelineHeader h2 { font-size:16px; }
+  .scheduleTimelineHeaderActions { gap:4px; }
+  .scheduleTimelineView, .scheduleTimelineWindowHint { display:none; }
+  .scheduleTimeline .scheduleTimelineListTrigger, .scheduleTimeline .scheduleTimelineUntimedTrigger { padding:5px 6px; }
+  .scheduleTimelineDateStrip { gap:4px; }
+  .scheduleTimelineDates { gap:2px; }
+  .scheduleTimelineToolbar { display:grid; grid-template-columns:28px minmax(0,1fr) 28px minmax(70px,.7fr); gap:4px; }
+  .scheduleTimelineToolbar select { width:100%; padding:5px 3px; }
+  .scheduleTimeline .scheduleTimelineArrow { width:28px; }
+  .scheduleTimelineEvent strong { font-size:12px; }
+  .scheduleTimelineBackdrop { padding:8px; }
+  .scheduleTimelineDialog { padding:12px; border-radius:15px; }
+}
+@media (max-height:450px) {
+  .scheduleTimeline { gap:3px; }
+  .scheduleTimelineHeader h2 { font-size:16px; }
+  .scheduleTimeline :is(button,select) { min-height:26px; padding-top:3px; padding-bottom:3px; }
+  .scheduleTimeline .scheduleTimelineDate { flex-direction:row; justify-content:center; gap:5px; padding:0; }
+  .scheduleTimelineDateCircle { width:26px; height:26px; font-size:16px; }
+  .scheduleTimelineWeekday { font-size:10px; }
+  .scheduleTimeline .scheduleTimelineColumnDate { min-height:22px; padding-top:2px; padding-bottom:2px; }
+  .scheduleTimeline .scheduleTimelineEvent { min-height:0; padding-top:0; padding-bottom:0; }
+  .scheduleTimelineWindowEmpty { flex-direction:row; gap:8px; padding:3px; }
+  .scheduleTimelineWindowEmpty strong { font-size:12px; }
+  .scheduleTimelineDialog > header { padding-bottom:6px; }
+  .scheduleTimelineDialog h2 { font-size:17px; }
+}
