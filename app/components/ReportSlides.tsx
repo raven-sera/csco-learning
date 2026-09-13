@@ -238,9 +238,9 @@ function SlideEditor({ slide, onClose, onApply, saveErrors }: {
   </div>, document.body);
 }
 
-export default function ReportSlides({ report, initialCapture = false, initialSlideId, active = true, onCountChange, onActiveSlideChange }: {
-  report: Report; initialCapture?: boolean; initialSlideId?: string; active?: boolean;
-  onCountChange?: (count: number) => void; onActiveSlideChange?: (slide: { id: string; index: number } | null) => void;
+export default function ReportSlides({ report, initialCapture = false, initialSlideId, savedSlideId, active = true, onCountChange, onActiveSlideChange }: {
+  report: Report; initialCapture?: boolean; initialSlideId?: string; savedSlideId?: string; active?: boolean;
+  onCountChange?: (count: number) => void; onActiveSlideChange?: (slide: { id: string; index: number; thumbnail: Blob } | null) => void;
 }) {
   const [slides, setSlides] = useState<StoredSlide[]>([]);
   const records = useRef<StoredSlide[]>([]);
@@ -266,7 +266,7 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
   const [destination, setDestination] = useState<number | null>(null);
   const dragged = useRef<string | null>(null);
   const captureOpened = useRef(false);
-  const currentSlideId = useRef<string | null>(null);
+  const [currentSlideId, setCurrentSlideId] = useState<string | null>(initialSlideId ?? null);
   const drafts = useRef<Record<string, string>>({});
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
   const operationDone = useRef<Promise<void>>(Promise.resolve());
@@ -286,9 +286,10 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
   useEffect(() => { if (load === 'ready') onCountChange?.(slides.length); }, [load, slides.length, onCountChange]);
   useEffect(() => {
     if (load !== 'ready') return;
-    const index = slides.findIndex(slide => slide.id === currentSlideId.current);
-    onActiveSlideChange?.(index < 0 ? null : { id: slides[index].id, index });
-  }, [load, slides, onActiveSlideChange]);
+    const index = Math.max(0, slides.findIndex(slide => slide.id === (currentSlideId ?? savedSlideId)));
+    const slide = slides[index];
+    onActiveSlideChange?.(slide ? { id: slide.id, index, thumbnail: slide.mode === 'processed' ? slide.processedThumbnail || slide.thumbnail : slide.thumbnail } : null);
+  }, [load, slides, currentSlideId, savedSlideId, onActiveSlideChange]);
   useEffect(() => {
     if (active && initialCapture && load === 'ready' && !captureOpened.current) { captureOpened.current = true; setCamera(true); }
   }, [active, initialCapture, load]);
@@ -501,7 +502,7 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
     {progress && <div className="slidesProgress"><progress max={Math.max(1, progress.total)} value={progress.completed} aria-label="导出进度" /><span>{progress.completed} / {progress.total}</span></div>}
     {!!errors.length && <div className="slidesError" role="alert"><strong>操作未全部完成</strong><ul>{errors.map((error, index) => <li key={index}>{error}</li>)}</ul></div>}
     {load === 'ready' && !slides.length && <div className="slidesEmpty"><h4>为这场报告保存第一张照片</h4><p>拍摄或从相册多选添加。保存完成后直接连续阅读，不需要逐张确认。</p><div className="slidesActions"><button type="button" disabled={disabled} onClick={() => setCamera(true)}>连续拍摄</button><button type="button" disabled={disabled} onClick={() => galleryInput.current?.click()}>从相册添加</button></div></div>}
-    {load === 'ready' && !!slides.length && <div hidden={view !== 'read'}><SlideReader key={report.id} reportId={report.id} slides={displaySlides} active={active && view === 'read' && !camera && !editing} initialSlideId={initialSlideId} renderAnnotation={slide => view === 'read' ? annotation(slide) : null} onActiveSlideChange={slide => { currentSlideId.current = slide?.id || null; onActiveSlideChange?.(slide); }} onError={message => setErrors([message])} /></div>}
+    {load === 'ready' && !!slides.length && <div hidden={view !== 'read'}><SlideReader key={report.id} reportId={report.id} slides={displaySlides} active={active && view === 'read' && !camera && !editing} initialSlideId={initialSlideId} renderAnnotation={slide => view === 'read' ? annotation(slide) : null} onActiveSlideChange={slide => setCurrentSlideId(slide?.id ?? null)} onError={message => setErrors([message])} /></div>}
     {view === 'manage' && !!slides.length && <><div className="slidesActions slidesBatchActions"><button type="button" disabled={disabled} onClick={() => setSelected(selected.size === slides.length ? new Set() : new Set(slides.map(slide => slide.id)))}>{selected.size === slides.length ? '取消全选' : '全选'}</button><span>已选 {selected.size} 张</span><button type="button" disabled={disabled || !selected.size} onClick={() => void scan()}>扫描选中</button><button type="button" disabled={disabled || !selected.size} onClick={() => { setDestination(null); setMoving(true); }}>移动到报告</button><button type="button" className="slidesDelete" disabled={disabled || !selected.size} onClick={() => setDeleting(true)}>删除选中</button></div>
       <ol className="slidesGrid">{slides.map((slide, index) => <li className="slidesCard" key={slide.id} onDragOver={event => { if (!disabled) event.preventDefault(); }} onDrop={event => { event.preventDefault(); if (!disabled && dragged.current) reorder(records.current.findIndex(item => item.id === dragged.current), index); dragged.current = null; }}>
         <div className="slidesThumbnail"><SlideThumbnail slide={slide} /><span>第 {index + 1} 页 · {slide.mode === 'processed' ? '扫描版' : '原图'}</span></div>

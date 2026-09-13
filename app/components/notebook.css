@@ -1,18 +1,31 @@
-.notebook { min-width:0; color:var(--ink); }
+.notebook { min-width:0; color:var(--ink); scroll-margin-top:calc(var(--notebook-topbar-height,64px) + 12px); }
 .notebookHeader { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .notebookHeader h3 { margin:4px 0 0; font-size:24px; }
 .notebook button,.notebook input,.notebook select,.notebook .recordingActions a { min-height:44px; }
 .notebook button { cursor:pointer; }
 .notebook button:disabled { cursor:not-allowed; opacity:.5; }
 .notebookHeader > button,.notebookTextHeading > button,.notebookTags > button,.notebookRecordingBanner button { border:1px solid var(--line-strong); border-radius:8px; padding:9px 14px; background:#fff; color:var(--ink); font-size:14px; font-weight:700; }
-.notebookTabs { position:sticky; top:var(--notebook-topbar-height,64px); z-index:8; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; padding:5px; margin:0 0 12px; border:1px solid var(--glass-border); border-radius:12px; background:var(--glass-surface); box-shadow:var(--glass-shadow); backdrop-filter:blur(18px) saturate(145%); scroll-margin-top:calc(var(--notebook-topbar-height,64px) + 12px); }
-.notebookTabs > button { display:flex; align-items:center; justify-content:center; gap:8px; min-width:0; border:0; border-radius:8px; background:transparent; color:var(--muted); font-family:inherit; font-size:15px; line-height:1.2; font-weight:700; }
-.notebookTabs > button[aria-selected="true"] { background:var(--action-fill); color:white; }
-.notebookTabs small { font-size:12px; font-weight:500; }
-.notebookTabs i { width:8px; height:8px; border-radius:50%; background:var(--coral); outline:2px solid white; }
-.notebookWorkspace { min-width:0; margin:0; padding:0; border:0; display:grid; grid-template-columns:minmax(0,1fr); gap:16px; }
+.notebookTabs { position:sticky; top:var(--notebook-topbar-height,64px); z-index:8; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; min-width:0; padding:5px; border:1px solid var(--glass-border); border-radius:14px; background:var(--glass-surface); box-shadow:var(--glass-shadow); backdrop-filter:blur(18px) saturate(145%); }
+.notebookTabs > button { display:flex; flex-direction:column; align-items:stretch; gap:8px; min-width:0; padding:12px; border:1px solid transparent; border-radius:10px; background:var(--glass-raised); color:var(--ink); font-family:inherit; text-align:left; }
+.notebookTabs > button[aria-pressed="true"] { border-color:var(--brand); box-shadow:inset 3px 0 0 var(--brand); background:color-mix(in srgb,var(--brand) 8%,white); }
+.notebookPreviewHeading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:4px 8px; }
+.notebookPreviewHeading b { font-size:15px; }
+.notebookPreviewHeading small { color:var(--muted); font-size:12px; }
+.notebookPreview { display:flex; align-items:center; justify-content:center; height:70px; min-width:0; overflow:hidden; border:1px solid var(--line); border-radius:6px; background:white; color:var(--muted); }
+.notebookSlidePreview img { width:100%; height:100%; object-fit:contain; }
+.notebookPreviewEmpty { font-size:12px; }
+.notebookTextPreview { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; padding:7px; color:var(--ink); font-size:12px; line-height:18px; white-space:pre-wrap; overflow-wrap:anywhere; text-align:left; }
+.notebookAudioPreview { flex-wrap:wrap; align-content:center; gap:4px 8px; padding:6px; font-size:12px; }
+.notebookAudioPreview svg { flex:none; width:22px; height:26px; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.notebookAudioPreview time { flex-basis:100%; text-align:center; font-variant-numeric:tabular-nums; }
+.notebookTabs > button[data-recording="true"] .notebookAudioPreview { border-color:var(--coral); color:var(--ink); background:color-mix(in srgb,var(--coral) 12%,white); }
+.notebookTabs > button[data-recording="true"] svg { color:var(--coral); }
+.notebookPreviewCaption { color:var(--muted); font-size:12px; line-height:1.4; }
+.notebookTabs > button[aria-pressed="true"] .notebookPreviewCaption { color:var(--brand); font-weight:700; }
+.notebookWorkspace { min-width:0; margin:0; padding:0; border:0; display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:16px; }
 .notebookWorkspace > [hidden] { display:none!important; }
 .notebookSlidePane,.notebookTextPane,.notebookAudioPane { min-width:0; }
+.notebookSlidePane .reportSlides { margin-top:0; }
 .notebookTextPane { border:1px solid var(--glass-border); border-radius:12px; padding:14px; background:var(--glass-raised); box-shadow:var(--glass-shadow); }
 .notebookTextHeading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 12px; }
 .notebookTextHeading h4 { margin:0; font-size:17px; }
@@ -118,15 +131,25 @@
 .singleNoteDocument .pdfRecordingList > div > b { color:#254caf; }
 .singleNoteDocument .pdfRecordingList > div > small { font-size:7pt; line-height:1.6; }
 @media (min-width:1000px) {
-  .notebook[data-section="slides"] .notebookWorkspace,.notebook[data-section="text"] .notebookWorkspace { grid-template-columns:minmax(0,1.12fr) minmax(0,1fr); align-items:start; }
-  .notebookTextPane { position:sticky; top:calc(var(--notebook-topbar-height,64px) + 70px); }
-  .notebook .notebookTextScroll { max-height:65dvh; }
+  .notebookWorkspace { grid-template-columns:minmax(0,1fr) 200px; }
+  .notebookTabs { grid-column:2; grid-row:1; grid-template-columns:minmax(0,1fr); }
+  .notebookTabs > button[aria-pressed="true"] .notebookPreview { display:none; }
+  .notebookSlidePane,.notebookTextPane,.notebookAudioPane { grid-column:1; grid-row:1; }
+  .notebookPreview { height:90px; }
+  .notebookTextPreview { -webkit-line-clamp:4; }
 }
 @media (max-width:600px) {
   .notebookHeader { align-items:center; }
   .notebookHeader h3 { font-size:21px; }
   .notebookHeader > button { padding:8px 10px; font-size:13px; }
-  .notebookTabs > button { gap:5px; }
+  .notebookTabs { gap:4px; padding:4px; }
+  .notebookTabs > button { gap:5px; padding:8px; }
+  .notebookPreviewHeading b { font-size:14px; }
+  .notebookPreviewHeading small,.notebookPreviewCaption { font-size:11px; }
+  .notebookPreview { height:52px; }
+  .notebookTextPreview { padding:4px; -webkit-line-clamp:2; font-size:11px; line-height:18px; }
+  .notebookAudioPreview { padding:3px; gap:2px 4px; font-size:11px; }
+  .notebookAudioPreview svg { width:16px; height:20px; }
   .notebookTextPane { padding:10px; }
   .notebook .notebookTextScroll .tiptap { padding:14px; }
   .notebook .noteToolbar { flex-wrap:wrap; }

@@ -28,6 +28,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { createPortal } from 'react-dom';
 import type { Report } from '../lib/reports';
 import ReportSlides from './ReportSlides';
+import { useBlobUrl } from './SlideReader';
 import { BrandLockup, HuiduQrCallout } from './BrandLockup';
 import { renderPdf } from './ExportCenter';
 import { imageToPng } from '../lib/slideImages';
@@ -891,8 +892,8 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
     setMode(initialMode);
     if (autoCapture || initialSlideId || initialSection) setSection(autoCapture || initialSlideId ? 'slides' : initialSection!);
   }
-  const [desktop, setDesktop] = useState(false);
   const [textLength, setTextLength] = useState(0);
+  const [textPreview, setTextPreview] = useState('');
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('loading');
   const [savedAt, setSavedAt] = useState(0);
   const [manualSaveStatus, setManualSaveStatus] = useState<ManualSaveStatus>('idle');
@@ -901,7 +902,9 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
   const [tagStatus, setTagStatus] = useState<SaveStatus>('loading');
   const [metaLoaded, setMetaLoaded] = useState(false);
   const [slideCount, setSlideCount] = useState(0);
-  const [currentSlide, setCurrentSlide] = useState<{ id: string; index: number } | null>(null);
+  const [savedSlideId, setSavedSlideId] = useState<string>();
+  const [currentSlide, setCurrentSlide] = useState<{ id: string; index: number; thumbnail: Blob } | null>(null);
+  const slidePreviewUrl = useBlobUrl(currentSlide?.thumbnail);
   const [exportSnapshot, setExportSnapshot] = useState<NoteExportSnapshot | null>(null);
   const [exportProgress, setExportProgress] = useState('');
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -922,8 +925,9 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
   const modeRef = useRef(mode);
   modeRef.current = mode;
   const recordings = useRecordings(report.id);
-  const slidesVisible = section === 'slides' || (desktop && section === 'text');
-  const textVisible = section === 'text' || (desktop && section === 'slides');
+  const slidesVisible = section === 'slides';
+  const textVisible = section === 'text';
+  const audioStatus = recordings.status === 'recording' ? '正在录音' : recordings.status === 'requesting' ? '等待授权' : recordings.status === 'saving' ? '正在保存' : recordings.error ? '录音需处理' : '未在录音';
   const exporting = Boolean(exportProgress || exportSnapshot);
   const noteReady = loadedRef.current && saveStatus !== 'loading';
 
@@ -983,7 +987,9 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
     onUpdate: ({ editor: activeEditor }) => {
       latestHtmlRef.current = activeEditor.getHTML();
       dirtyRef.current = true;
-      setTextLength(activeEditor.getText().length);
+      const text = activeEditor.getText();
+      setTextLength(text.length);
+      setTextPreview(text.trim().slice(0, 100));
       setSaveStatus('pending');
       setManualSaveStatus('idle');
       if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
@@ -991,13 +997,6 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
     },
   }, [report.id]);
 
-  useEffect(() => {
-    const media = window.matchMedia('(min-width: 1000px)');
-    const update = () => setDesktop(media.matches);
-    update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
 
   useEffect(() => {
     if (autoCapture || initialSlideId || initialSection) {
@@ -1043,6 +1042,7 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
       setTags(tagsRef.current);
       setTagStatus('saved');
       textOffsetRef.current = meta.reading?.textOffset ?? 0;
+      setSavedSlideId(meta.reading?.slideId);
       restoreTextRef.current = true;
       if (!explicitSectionRef.current) setSection(meta.reading?.section ?? 'text');
       setMetaLoaded(true);
@@ -1116,7 +1116,9 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
       editor.setEditable(modeRef.current === 'edit', false);
       latestHtmlRef.current = editor.getHTML();
       loadedRef.current = true;
-      setTextLength(editor.getText().length);
+      const text = editor.getText();
+      setTextLength(text.length);
+      setTextPreview(text.trim().slice(0, 100));
       setSavedAt(record.updatedAt);
       setSaveStatus('saved');
       if (record.migrated) {
@@ -1163,6 +1165,9 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
 
   function selectSection(next: NotebookSection) {
     explicitSectionRef.current = true;
+    if (next === section) return;
+    if (textVisible && textPaneRef.current) textOffsetRef.current = textPaneRef.current.scrollTop;
+    if (next === 'text') restoreTextRef.current = true;
     if (readingTimerRef.current !== null) {
       window.clearTimeout(readingTimerRef.current);
       readingTimerRef.current = null;
@@ -1250,11 +1255,6 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
         <div><span className="sectionKicker">个人笔记 · 本机保存</span><h3>本场笔记</h3></div>
         <button type="button" onClick={() => void openExport()} disabled={!loadedRef.current || exporting}>完整笔记 PDF</button>
       </header>
-      <div className="notebookTabs" role="tablist" aria-label="笔记内容">
-        {([{ key: 'slides', title: 'PPT', count: slideCount }, { key: 'text', title: '文本', count: `${textLength} 字` }, { key: 'audio', title: '录音', count: recordings.items.length }] as const).map((tab) => (
-          <button key={tab.key} type="button" role="tab" id={`notebook-tab-${tab.key}`} aria-controls={`notebook-panel-${tab.key}`} aria-selected={section === tab.key} onClick={() => selectSection(tab.key)}>{tab.title}<small>{tab.count}</small>{tab.key === 'audio' && recordings.status !== 'idle' && <i aria-label="录音进行中" />}</button>
-        ))}
-      </div>
       {recordings.status !== 'idle' && (
         <div className="notebookRecordingBanner" role="status">
           <span>{recordings.status === 'recording' ? `正在录音 ${formatDuration(recordings.elapsedMs)} · 切换标签不停止录音` : recordings.status === 'saving' ? '录音保存中，请勿关闭页面' : '等待麦克风授权'}</span>
@@ -1265,10 +1265,33 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
       {recordings.error && section !== 'audio' && <p className="noteEditorError" role="alert">{recordings.error} <button type="button" onClick={() => selectSection('audio')}>查看录音</button></p>}
       {exportProgress && <p className="notebookProgress" role="status">{exportProgress}</p>}
       <fieldset className="notebookWorkspace" disabled={exporting} aria-busy={exporting}>
-        <div className="notebookSlidePane" id="notebook-panel-slides" role="tabpanel" aria-labelledby="notebook-tab-slides" hidden={!slidesVisible}>
-          <ReportSlides key={report.id} report={report} initialCapture={autoCapture} initialSlideId={initialSlideId} active={metaLoaded && slidesVisible && !exporting} onCountChange={setSlideCount} onActiveSlideChange={setCurrentSlide} />
+        <div className="notebookTabs" role="group" aria-label="切换笔记主区">
+          <button type="button" id="notebook-tab-slides" aria-controls="notebook-panel-slides" aria-pressed={slidesVisible} aria-label="PPT，设为主区" onClick={() => selectSection('slides')}>
+            <span className="notebookPreviewHeading"><b>PPT</b><small>{slideCount} 张</small></span>
+            <span className="notebookPreview notebookSlidePreview" aria-hidden="true">
+              {slidePreviewUrl ? <img src={slidePreviewUrl} alt="" /> : <span className="notebookPreviewEmpty">暂无 PPT</span>}
+            </span>
+            <span className="notebookPreviewCaption">{slidesVisible ? '主区显示' : currentSlide ? `继续第 ${currentSlide.index + 1} 张` : '拍摄 / 添加'}</span>
+          </button>
+          <button type="button" id="notebook-tab-text" aria-controls="notebook-panel-text" aria-pressed={textVisible} aria-label="文本，设为主区" onClick={() => selectSection('text')}>
+            <span className="notebookPreviewHeading"><b>文本</b><small>{textLength} 字</small></span>
+            <span className="notebookPreview notebookTextPreview" aria-hidden="true">{textPreview || '还没有文字笔记'}</span>
+            <span className="notebookPreviewCaption">{textVisible ? '主区显示' : saveStatus === 'pending' ? '待保存' : saveStatus === 'error' ? '保存需重试' : mode === 'edit' ? '继续编辑' : '继续阅读'}</span>
+          </button>
+          <button type="button" id="notebook-tab-audio" aria-controls="notebook-panel-audio" aria-pressed={section === 'audio'} aria-label="录音，设为主区" data-recording={recordings.status === 'recording'} onClick={() => selectSection('audio')}>
+            <span className="notebookPreviewHeading"><b>录音</b><small>{recordings.items.length} 条</small></span>
+            <span className="notebookPreview notebookAudioPreview">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" /></svg>
+              <span>{audioStatus}</span>
+              {recordings.status === 'recording' && <time>{formatDuration(recordings.elapsedMs)}</time>}
+            </span>
+            <span className="notebookPreviewCaption">{section === 'audio' ? '主区显示' : recordings.status === 'recording' ? '切换不中断' : '打开录音'}</span>
+          </button>
         </div>
-        <div className="notebookTextPane" id="notebook-panel-text" role="tabpanel" aria-labelledby="notebook-tab-text" hidden={!textVisible}>
+        <div className="notebookSlidePane" id="notebook-panel-slides" role="region" aria-labelledby="notebook-tab-slides" hidden={!slidesVisible}>
+          <ReportSlides key={report.id} report={report} initialCapture={autoCapture} initialSlideId={initialSlideId} savedSlideId={savedSlideId} active={metaLoaded && slidesVisible && !exporting} onCountChange={setSlideCount} onActiveSlideChange={setCurrentSlide} />
+        </div>
+        <div className="notebookTextPane" id="notebook-panel-text" role="region" aria-labelledby="notebook-tab-text" hidden={!textVisible}>
           <div className="notebookTextHeading">
             <h4>文本笔记 <small>{mode === 'read' ? '阅读模式' : '编辑模式'}</small></h4>
             <button type="button" disabled={!loadedRef.current} onClick={() => {
@@ -1303,7 +1326,7 @@ export default function ReportNotes({ report, initialSection, initialMode = 'rea
             <button type="button" className="noteSaveButton" disabled={!loadedRef.current || manualSaveStatus === 'saving'} onClick={() => void saveNow()}>{manualSaveStatus === 'saving' ? '保存中…' : manualSaveStatus === 'saved' ? '保存成功' : manualSaveStatus === 'error' ? '保存失败 · 重试' : '立即保存'}</button>
           </footer>
         </div>
-        <div ref={audioPaneRef} className="notebookAudioPane" id="notebook-panel-audio" role="tabpanel" aria-labelledby="notebook-tab-audio" hidden={section !== 'audio'}>
+        <div ref={audioPaneRef} className="notebookAudioPane" id="notebook-panel-audio" role="region" aria-labelledby="notebook-tab-audio" hidden={section !== 'audio'}>
           <RecordingPanel recordings={recordings} />
         </div>
       </fieldset>
