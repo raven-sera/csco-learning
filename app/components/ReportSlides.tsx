@@ -39,122 +39,20 @@ async function storeSlidePhoto(file: File, reportId: number, order: number): Pro
 }
 
 
-function SlideCamera({ onClose, onNative, onGallery, onCapture, saveErrors, report, slides, pending }: {
+function SlideSourcePicker({ onClose, onNative, onGallery, report, disabled }: {
   onClose: () => void;
   onNative: () => void;
   onGallery: () => void;
   report: Report;
-  slides: StoredSlide[];
-  pending: boolean;
-  onCapture: (file: File) => Promise<boolean>;
-  saveErrors: string[];
+  disabled: boolean;
 }) {
-  const video = useRef<HTMLVideoElement>(null);
-  const stream = useRef<MediaStream | null>(null);
-  const alive = useRef(false);
-  const capturing = useRef(false);
-  const captureDone = useRef<Promise<void>>(Promise.resolve());
-  const resolveCapture = useRef<(() => void) | null>(null);
-  const captureSaved = useRef(false);
-  useEffect(() => {
-    const flush = (event: Event) => {
-      if (!capturing.current) return;
-      (event as CustomEvent<{ promises: Promise<void>[] }>).detail.promises.push(captureDone.current.then(() => { if (!captureSaved.current) throw new Error('拍摄照片未保存，请处理拍摄窗口中的错误后重试。'); }));
-    };
-    window.addEventListener('csco:flush-notebook', flush);
-    return () => window.removeEventListener('csco:flush-notebook', flush);
-  }, []);
-  const [ready, setReady] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('正在请求后置摄像头权限…');
-  const [attempt, setAttempt] = useState(0);
-  const closeRequested = useRef(false);
-  const requestClose = () => {
-    if (capturing.current || pending) { closeRequested.current = true; setMessage('当前照片保存完成后将关闭摄像头。'); return; }
-    onClose();
-  };
-  useDialog('.slideCameraOverlay', requestClose);
-  useEffect(() => { if (!busy && !pending && closeRequested.current) onClose(); }, [busy, pending, onClose]);
+  useDialog('.slideSourceOverlay', onClose);
 
-  useEffect(() => {
-    alive.current = true;
-    let cancelled = false;
-    const stop = () => { stream.current?.getTracks().forEach(track => track.stop()); stream.current = null; };
-    const start = async () => {
-      try {
-        if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-          throw new Error('连续拍摄需要 HTTPS（或 localhost）及支持摄像头的浏览器。请改用系统拍照，或从相册添加。');
-        }
-        const next = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 2560 }, height: { ideal: 1440 } }, audio: false });
-        if (cancelled) { next.getTracks().forEach(track => track.stop()); return; }
-        stream.current = next;
-        if (!video.current) { stop(); return; }
-        video.current.srcObject = next;
-        next.getVideoTracks().forEach(track => {
-          track.onended = () => {
-            if (cancelled) return;
-            setReady(false);
-            setError('摄像头已断开。请重新开启，或使用系统拍照。');
-          };
-        });
-        await video.current.play();
-        if (cancelled) { stop(); return; }
-        setReady(true);
-        setMessage('对准 PPT 后拍摄；保存完成即可继续拍下一张。');
-      } catch (cause) {
-        stop();
-        if (cancelled) return;
-        const name = cause instanceof Error ? cause.name : '';
-        setMessage('');
-        setError(name === 'NotAllowedError' ? '摄像头权限被拒绝。请在浏览器网站设置中允许摄像头后重试，或使用系统拍照 / 相册。' : name === 'NotFoundError' ? '未找到摄像头。请使用相册添加照片。' : name === 'NotReadableError' ? '摄像头可能正被其他应用占用，请关闭占用后重试，或使用系统拍照。' : explain(cause));
-      }
-    };
-    void start();
-    return () => { cancelled = true; alive.current = false; stop(); };
-  }, [attempt]);
-
-  const capture = async () => {
-    if (capturing.current || !ready || !video.current) return;
-    capturing.current = true;
-    captureSaved.current = false;
-    captureDone.current = new Promise<void>(resolve => { resolveCapture.current = resolve; });
-    setBusy(true);
-    setError('');
-    try {
-      const source = video.current;
-      if (!source.videoWidth || !source.videoHeight) throw new Error('摄像头画面尚未就绪，请稍后重试。');
-      const canvas = document.createElement('canvas');
-      canvas.width = source.videoWidth;
-      canvas.height = source.videoHeight;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('浏览器无法读取拍摄画面，请改用系统拍照。');
-      context.drawImage(source, 0, 0);
-      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('照片生成失败，请重新拍摄。')), 'image/jpeg', 0.95));
-      canvas.width = canvas.height = 0;
-      if (!alive.current) return;
-      const saved = await onCapture(new File([blob], `PPT-${new Date().toISOString().replace(/[:.]/g, '-')}.jpg`, { type: 'image/jpeg' }));
-      captureSaved.current = saved;
-      if (alive.current) setMessage(saved ? '本张已保存到此报告，可以继续拍摄。' : '本张未保存，请关闭拍摄查看错误，处理后重试。');
-    } catch (cause) {
-      if (alive.current) setError(explain(cause));
-    } finally {
-      capturing.current = false;
-      resolveCapture.current?.(); resolveCapture.current = null;
-      if (alive.current) setBusy(false);
-    }
-  };
-
-  return createPortal(<div className="slidesOverlay slideCameraOverlay" role="dialog" aria-modal="true" aria-labelledby="slideCameraTitle">
+  return createPortal(<div className="slidesOverlay slideSourceOverlay" role="dialog" aria-modal="true" aria-labelledby="slideSourceTitle">
     <div className="slidesDialog">
-      <header><div><small>PPT 连续拍摄 · 已保存 {slides.length} 张</small><h3 id="slideCameraTitle">{report.sourceTitle}</h3></div><button type="button" onClick={requestClose}>{busy || pending ? '保存完成后关闭' : '停止并关闭'}</button></header>
-      <video ref={video} autoPlay playsInline muted aria-label="后置摄像头实时画面" />
-      <div className="slidesRecent" aria-label="最近已保存照片">{slides.slice(-6).map(slide => <div key={slide.id}><SlideThumbnail slide={slide} /><small>{slide.order + 1}</small></div>)}</div>
-      <details><summary>拍摄与隐私说明</summary><p className="slidesHint">仅存本机，不上传。关闭会停止摄像头；正在保存时会等待。画质取决于设备的视频分辨率，需要最高画质可用系统相机或相册。</p></details>
-      <p role="status">{busy || pending ? '正在处理并写入本机，完成前不计入已保存张数…' : message}</p>
-      {error && <p className="slidesError" role="alert">{error}</p>}
-      {!!saveErrors.length && <div className="slidesError" role="alert">{saveErrors.map((text, index) => <p key={index}>{text}</p>)}</div>}
-      <div className="slidesActions"><button className="slidesPrimary slidesShutter" type="button" disabled={!ready || busy || pending} onClick={() => void capture()}>{busy || pending ? '保存中…' : '拍摄并保存'}</button>{error && <button type="button" disabled={busy || pending} onClick={() => { setReady(false); setError(''); setMessage('正在请求后置摄像头权限…'); setAttempt(value => value + 1); }}>重新开启摄像头</button>}<button type="button" disabled={busy || pending} onClick={onNative}>系统拍照</button><button type="button" disabled={busy || pending} onClick={onGallery}>从相册添加</button></div>
+      <header><div><small>添加 PPT 照片</small><h3 id="slideSourceTitle">{report.sourceTitle}</h3></div><button type="button" onClick={onClose}>关闭</button></header>
+      <div className="slidesActions"><button type="button" disabled={disabled} onClick={() => { onNative(); onClose(); }}>系统拍照</button><button type="button" disabled={disabled} onClick={() => { onGallery(); onClose(); }}>从相册添加</button></div>
+      <p className="slidesHint">照片仅存本机，不上传。系统拍照由设备和浏览器提供，电脑端可能打开文件选择窗口；相册支持多选。</p>
     </div>
   </div>, document.body);
 }
@@ -251,11 +149,11 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
-  const [camera, setCamera] = useState(false);
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
   const [previousActive, setPreviousActive] = useState(active);
   if (previousActive !== active) {
     setPreviousActive(active);
-    if (!active) setCamera(false);
+    if (!active) setSourcePickerOpen(false);
   }
   const [editing, setEditing] = useState<StoredSlide | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -291,14 +189,14 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
     onActiveSlideChange?.(slide ? { id: slide.id, index, thumbnail: slide.mode === 'processed' ? slide.processedThumbnail || slide.thumbnail : slide.thumbnail } : null);
   }, [load, slides, currentSlideId, savedSlideId, onActiveSlideChange]);
   useEffect(() => {
-    if (active && initialCapture && load === 'ready' && !captureOpened.current) { captureOpened.current = true; setCamera(true); }
+    if (active && initialCapture && load === 'ready' && !captureOpened.current) { captureOpened.current = true; setSourcePickerOpen(true); }
   }, [active, initialCapture, load]);
   useEffect(() => {
     const open = (event: Event) => {
       const detail = (event as CustomEvent<{ reportId: number; options: NotebookOpenOptions }>).detail;
       if (detail.reportId !== report.id) return;
       if (detail.options.slideId) setView('read');
-      if (detail.options.capture && load === 'ready') setCamera(true);
+      if (detail.options.capture && load === 'ready') setSourcePickerOpen(true);
     };
     window.addEventListener(NOTEBOOK_OPEN_EVENT, open);
     return () => window.removeEventListener(NOTEBOOK_OPEN_EVENT, open);
@@ -375,8 +273,8 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
   const saveAnnotation = async () => { try { await flushDrafts(); return true; } catch { return false; } };
   const annotation = (slide: StoredSlide) => <SlideAnnotation slide={slide} disabled={disabled} draft={draftValues[slide.id] ?? slide.annotation ?? ''} onDraft={text => { drafts.current[slide.id] = text; setDraftValues({ ...drafts.current }); }} onSave={saveAnnotation} onImportant={() => void update(records.current.map(item => item.id === slide.id ? { ...item, important: !item.important, updatedAt: Date.now() } : item), '重要标记已保存。')} />;
 
-  async function importFiles(files: File[]): Promise<boolean> {
-    if (!files.length || !begin('正在导入照片…')) return false;
+  async function importFiles(files: File[]): Promise<void> {
+    if (!files.length || !begin('正在导入照片…')) return;
     let saved = 0;
     const failures: string[] = [];
     try {
@@ -392,7 +290,6 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
       if (alive.current) { setNotice(`已保存 ${saved} 张${failures.length ? `；${failures.length} 张失败，成功的照片已保留。` : '，可继续添加。'}`); setErrors(failures); }
     } catch (cause) { if (alive.current) setErrors([`照片导入失败：${explain(cause)}`]); }
     finally { finish(); }
-    return saved === files.length;
   }
 
   const update = async (next: StoredSlide[], message: string) => {
@@ -493,7 +390,7 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
   };
 
   return <section className="reportSlides" aria-label="本报告 PPT 照片笔记" aria-busy={disabled}>
-    <header className="slidesHeading"><h3>照片 <span>{slides.length} 张已保存</span></h3><div className="slidesActions"><button type="button" aria-pressed={view === 'read'} onClick={() => setView('read')}>阅读</button><button type="button" aria-pressed={view === 'manage'} onClick={() => setView('manage')}>管理</button><button type="button" className="slidesPrimary" disabled={disabled} onClick={() => { setErrors([]); setCamera(true); }}>拍摄 / 添加</button></div></header>
+    <header className="slidesHeading"><h3>照片 <span>{slides.length} 张已保存</span></h3><div className="slidesActions"><button type="button" aria-pressed={view === 'read'} onClick={() => setView('read')}>阅读</button><button type="button" aria-pressed={view === 'manage'} onClick={() => setView('manage')}>管理</button><button type="button" className="slidesPrimary" disabled={disabled} onClick={() => { setErrors([]); setSourcePickerOpen(true); }}>拍摄 / 添加</button></div></header>
     <input className="slidesFileInput" ref={nativeInput} type="file" accept="image/*" capture="environment" aria-label="使用系统相机拍摄 PPT" disabled={disabled} onChange={event => { const files = Array.from(event.target.files || []); event.target.value = ''; void importFiles(files); }} />
     <input className="slidesFileInput" ref={galleryInput} type="file" accept="image/*" multiple aria-label="从相册选择多张 PPT 照片" disabled={disabled} onChange={event => { const files = Array.from(event.target.files || []); event.target.value = ''; void importFiles(files); }} />
     {load === 'loading' && <p role="status">正在读取照片…</p>}
@@ -501,8 +398,8 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
     {(busy || notice) && <p className="slidesNotice" role="status">{busy || notice}</p>}
     {progress && <div className="slidesProgress"><progress max={Math.max(1, progress.total)} value={progress.completed} aria-label="导出进度" /><span>{progress.completed} / {progress.total}</span></div>}
     {!!errors.length && <div className="slidesError" role="alert"><strong>操作未全部完成</strong><ul>{errors.map((error, index) => <li key={index}>{error}</li>)}</ul></div>}
-    {load === 'ready' && !slides.length && <div className="slidesEmpty"><h4>为这场报告保存第一张照片</h4><p>拍摄或从相册多选添加。保存完成后直接连续阅读，不需要逐张确认。</p><div className="slidesActions"><button type="button" disabled={disabled} onClick={() => setCamera(true)}>连续拍摄</button><button type="button" disabled={disabled} onClick={() => galleryInput.current?.click()}>从相册添加</button></div></div>}
-    {load === 'ready' && !!slides.length && <div hidden={view !== 'read'}><SlideReader key={report.id} reportId={report.id} slides={displaySlides} active={active && view === 'read' && !camera && !editing} initialSlideId={initialSlideId} renderAnnotation={slide => view === 'read' ? annotation(slide) : null} onActiveSlideChange={slide => setCurrentSlideId(slide?.id ?? null)} onError={message => setErrors([message])} /></div>}
+    {load === 'ready' && !slides.length && <div className="slidesEmpty"><h4>为这场报告保存第一张照片</h4><p>使用系统拍照或从相册多选添加。保存完成后直接连续阅读，不需要逐张确认。</p><div className="slidesActions"><button type="button" disabled={disabled} onClick={() => nativeInput.current?.click()}>系统拍照</button><button type="button" disabled={disabled} onClick={() => galleryInput.current?.click()}>从相册添加</button></div></div>}
+    {load === 'ready' && !!slides.length && <div hidden={view !== 'read'}><SlideReader key={report.id} reportId={report.id} slides={displaySlides} active={active && view === 'read' && !sourcePickerOpen && !editing} initialSlideId={initialSlideId} renderAnnotation={slide => view === 'read' ? annotation(slide) : null} onActiveSlideChange={slide => setCurrentSlideId(slide?.id ?? null)} onError={message => setErrors([message])} /></div>}
     {view === 'manage' && !!slides.length && <><div className="slidesActions slidesBatchActions"><button type="button" disabled={disabled} onClick={() => setSelected(selected.size === slides.length ? new Set() : new Set(slides.map(slide => slide.id)))}>{selected.size === slides.length ? '取消全选' : '全选'}</button><span>已选 {selected.size} 张</span><button type="button" disabled={disabled || !selected.size} onClick={() => void scan()}>扫描选中</button><button type="button" disabled={disabled || !selected.size} onClick={() => { setDestination(null); setMoving(true); }}>移动到报告</button><button type="button" className="slidesDelete" disabled={disabled || !selected.size} onClick={() => setDeleting(true)}>删除选中</button></div>
       <ol className="slidesGrid">{slides.map((slide, index) => <li className="slidesCard" key={slide.id} onDragOver={event => { if (!disabled) event.preventDefault(); }} onDrop={event => { event.preventDefault(); if (!disabled && dragged.current) reorder(records.current.findIndex(item => item.id === dragged.current), index); dragged.current = null; }}>
         <div className="slidesThumbnail"><SlideThumbnail slide={slide} /><span>第 {index + 1} 页 · {slide.mode === 'processed' ? '扫描版' : '原图'}</span></div>
@@ -518,7 +415,7 @@ export default function ReportSlides({ report, initialCapture = false, initialSl
       {exportResult && exportUrl && <div className="slidesExportReady"><strong>文件已准备好</strong><span>{exportResult.filename}</span><div className="slidesActions"><a className="slidesDownload" href={exportUrl} download={exportResult.filename}>下载文件（{(exportResult.blob.size / 1024 / 1024).toFixed(1)} MB）</a>{canShare && <button type="button" disabled={shareBusy} onClick={() => void share()}>{shareBusy ? '正在分享…' : '分享文件'}</button>}</div><small>修改照片后需重新生成文件。</small></div>}
     </details>
     <details className="slidesPrivacy"><summary>本机存储与隐私</summary><p className="slidesHint">照片保存在本浏览器，不上传，不跨设备同步。清除网站数据、结束无痕浏览或浏览器回收存储可能导致丢失，请及时使用资料库完整备份。导入格式、大小限制与原照片处理规则不变；不支持的格式会明确报错。</p></details>
-    {camera && <SlideCamera report={report} slides={slides} pending={!!busy} saveErrors={errors} onClose={() => setCamera(false)} onNative={() => nativeInput.current?.click()} onGallery={() => galleryInput.current?.click()} onCapture={file => importFiles([file])} />}
+    {sourcePickerOpen && <SlideSourcePicker report={report} disabled={disabled} onClose={() => setSourcePickerOpen(false)} onNative={() => nativeInput.current?.click()} onGallery={() => galleryInput.current?.click()} />}
     {editing && <SlideEditor saveErrors={errors} slide={editing} onClose={() => setEditing(null)} onApply={(corners, enhance, rotation) => applyEdit(editing, corners, enhance, rotation)} />}
     {moving && createPortal(<div className="slidesOverlay slidesMoveOverlay" role="dialog" aria-modal="true" aria-labelledby="slidesMoveTitle"><div className="slidesDialog"><header><h3 id="slidesMoveTitle">移动 {selected.size} 张照片到报告</h3><button type="button" disabled={disabled} onClick={() => setMoving(false)}>取消</button></header><label className="slidesMoveSearch">搜索报告标题、讲者或领域<input type="search" value={moveQuery} onChange={event => setMoveQuery(event.target.value)} /></label><p className="slidesHint">保留照片 ID、原图、扫描版和批注，追加到目标报告末尾。</p><div className="slidesMoveResults">{moveMatches.map(item => <button type="button" key={item.report.id} disabled={disabled} aria-pressed={destination === item.report.id} onClick={() => setDestination(item.report.id)}><strong>{item.report.sourceTitle}</strong><small>{item.report.speaker} · {item.report.field}</small></button>)}{!moveMatches.length && <p>没有匹配的报告，请换个关键词。</p>}</div>{!!errors.length && <p className="slidesError" role="alert">{errors.join('；')}</p>}<button type="button" className="slidesPrimary" disabled={disabled || destination === null} onClick={() => void moveSelected()}>{busy || '确认移动'}</button></div></div>, document.body)}
     {deleting && createPortal(<div className="slidesOverlay slidesDeleteOverlay" role="dialog" aria-modal="true" aria-labelledby="slidesDeleteTitle"><div className="slidesDialog"><h3 id="slidesDeleteTitle">永久删除选中的 {selected.size} 张照片？</h3><p>原图、扫描版和本页批注都会从本机删除，无法撤销。文字笔记中的页面链接将不再可用。</p>{!!errors.length && <p className="slidesError" role="alert">{errors.join('；')}</p>}<div className="slidesActions"><button type="button" disabled={disabled} onClick={() => setDeleting(false)}>取消</button><button type="button" className="slidesDelete" disabled={disabled} onClick={() => void remove()}>{busy || '确认永久删除'}</button></div></div></div>, document.body)}
