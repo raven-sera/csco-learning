@@ -16,7 +16,10 @@
   .notebookReportDetails > div,.notebookQuickActions { display:flex; gap:8px; flex-wrap:wrap; }
   .notebookReportDetails button,.notebookReportDetails a,.notebookQuickActions button { min-height:44px; padding:8px 15px; border:1px solid var(--line); border-radius:10px; background:var(--glass-raised); font:600 14px/1.5 Arial,"Microsoft YaHei",sans-serif; color:var(--ink); cursor:pointer; }
   .notebookQuickActions { margin:12px 0 0; }
-  .notebookQuickActions button:first-child { background:var(--action-fill); border-color:var(--brand); color:#fff; }
+  .notebookQuickActions button:is(:focus-visible,:active) { background:var(--action-fill); border-color:var(--brand); color:#fff; }
+  @media (hover:hover) {
+    .notebookQuickActions button:hover { background:var(--action-fill); border-color:var(--brand); color:#fff; }
+  }
   .notebookDetailContent { padding:0 clamp(16px,4vw,64px) 40px; }
   .notebookDetailContent > .learningSection { margin-top:0; padding-top:16px; border-top:0; }
   .librarySpotlight { display:flex; flex-direction:column; gap:8px; padding:20px; border:1px solid var(--glass-border); border-radius:16px; background:radial-gradient(ellipse at 100% 0,rgba(252,241,80,.16),transparent 60%),var(--glass-surface); box-shadow:var(--glass-shadow); backdrop-filter:blur(16px) saturate(145%); color:var(--ink); }
