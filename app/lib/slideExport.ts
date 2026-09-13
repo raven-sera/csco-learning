@@ -5,8 +5,6 @@ import type { StoredSlide } from './noteStorage';
 import { imageToPng } from './slideImages';
 import { deferred } from './deferred';
 
-const FONT='"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif';
-
 function safeFilename(value:string,maxLength=64) {
   const clean=value.replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().replace(/[. ]+$/g,'');
   return Array.from(clean).slice(0,maxLength).join('').replace(/[. ]+$/g,'') || '未命名';
@@ -33,6 +31,7 @@ function wrap(ctx:CanvasRenderingContext2D,text:string,width:number) {
 
 async function cover(report:Report,count:number) {
   await document.fonts.ready;
+  const fontFamily=getComputedStyle(document.body).fontFamily;
   const value=document.createElement('canvas');
   value.width=1200; value.height=1;
   const ctx=value.getContext('2d');
@@ -41,25 +40,38 @@ async function cover(report:Report,count:number) {
     const margin=90,width=value.width-margin*2;
     const blocks:{lines:string[];font:string;lineHeight:number;color:string;gap:number}[]=[];
     const add=(text:string,size:number,bold:boolean,color:string,gap:number) => {
-      const font=`${bold ? '700' : '400'} ${size}px ${FONT}`;
+      const font=`${bold ? '700' : '400'} ${size}px ${fontFamily}`;
       ctx.font=font;
       blocks.push({lines:wrap(ctx,text,width),font,lineHeight:Math.ceil(size*1.55),color,gap});
     };
-    add('CSCO · 报告 PPT 图集',27,true,'#32715c',26);
-    add(report.sourceTitle,44,true,'#193d30',34);
-    add(`报告编号：${report.id}　·　${count} 张 PPT`,25,false,'#526459',30);
+    add('MyCO · CSCO 2026 / 报告 PPT 图集',25,true,'#254caf',26);
+    add(report.sourceTitle,44,true,'#0c1b3a',34);
+    add(`报告编号：${report.id}　·　${count} 张 PPT`,25,false,'#56637a',30);
     const fields:[string,string][]=[
       ['报告人',report.speaker],['单位',report.institution],['日期 / 时间',report.dateTime],
       ['会议地点',report.location],['专场',report.program],['Session',report.session],
       ['主持',report.chair],['癌种',report.field],
     ];
-    for (const [label,text] of fields) if (text) add(`${label}：${text}`,28,false,'#243e32',19);
-    add('图片按本报告图集顺序排列 · 原始照片保留在本设备',22,false,'#526459',0);
+    for (const [label,text] of fields) if (text) add(`${label}：${text}`,28,false,'#0c1b3a',19);
+    add('图片按本报告图集顺序排列 · 原始照片保留在本设备',22,false,'#56637a',0);
     const height=Math.max(1697,Math.ceil(margin*2+blocks.reduce((sum,block)=>sum+block.lines.length*block.lineHeight+block.gap,0)));
     if (height>16000) throw new Error('报告元数据过长，封面超过安全画布尺寸；未截断任何报告信息，请缩短元数据后重试。');
     value.height=height;
-    ctx.fillStyle='#f6f3e9'; ctx.fillRect(0,0,value.width,value.height);
-    ctx.fillStyle='#32715c'; ctx.fillRect(margin,45,100,7);
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,value.width,value.height);
+    const wash=ctx.createLinearGradient(0,0,value.width,value.height);
+    wash.addColorStop(0,'#eef3fb'); wash.addColorStop(.5,'#ffffff'); wash.addColorStop(1,'#eef3fb');
+    ctx.fillStyle=wash; ctx.fillRect(0,0,value.width,value.height);
+    const glass=ctx.createLinearGradient(0,0,value.width,value.height);
+    glass.addColorStop(0,'rgba(255,255,255,.96)'); glass.addColorStop(1,'rgba(255,255,255,.72)');
+    ctx.shadowColor='rgba(12,27,58,.07)'; ctx.shadowBlur=32; ctx.shadowOffsetY=12;
+    ctx.beginPath(); ctx.roundRect(48,48,value.width-96,value.height-96,24);
+    ctx.fillStyle=glass; ctx.fill();
+    ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+    ctx.strokeStyle='rgba(37,76,175,.16)'; ctx.lineWidth=1.5; ctx.stroke();
+    const accent=ctx.createLinearGradient(margin,0,value.width-margin,0);
+    accent.addColorStop(0,'#0c1b3a'); accent.addColorStop(.78,'#254caf'); accent.addColorStop(1,'#ec6749');
+    ctx.fillStyle=accent; ctx.fillRect(margin,65,width-32,5);
+    ctx.fillStyle='#fcf150'; ctx.fillRect(value.width-margin-20,65,20,5);
     ctx.textBaseline='top';
     let y=margin;
     for (const block of blocks) {

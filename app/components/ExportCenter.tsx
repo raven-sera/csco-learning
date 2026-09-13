@@ -126,11 +126,14 @@ function collectPageBreakOffsets(content:HTMLElement,scale:number) {
     if(offset>0&&offset<maximum)offsets.add(offset);
   };
   content.querySelectorAll<HTMLElement>('[data-pdf-keep],img').forEach((element)=>{
+    // A photo and its caption share the outer keep boundary.
+    if(element.parentElement?.closest('[data-pdf-keep]'))return;
     const rect=element.getBoundingClientRect();
     addOffset(rect.top-contentRect.top);
     addOffset(rect.bottom-contentRect.top+2);
   });
   content.querySelectorAll<HTMLElement>('h1,h2,h3').forEach((heading)=>{
+    if(heading.closest('[data-pdf-keep]'))return;
     addOffset(heading.getBoundingClientRect().top-contentRect.top);
   });
   const walker=document.createTreeWalker(content,NodeFilter.SHOW_TEXT);
@@ -173,11 +176,12 @@ function drawPdfPageNumber(
   width:number,
   height:number,
   footerHeight:number,
+  fontFamily:string,
 ) {
   const fontSize=Math.max(14,Math.round(width*2.4/210));
   context.save();
-  context.fillStyle='#18251e';
-  context.font=`700 ${fontSize}px Arial, sans-serif`;
+  context.fillStyle='#0c1b3a';
+  context.font=`700 ${fontSize}px ${fontFamily}`;
   context.textAlign='right';
   context.textBaseline='middle';
   context.fillText(`${page} / ${total}`,width-width*11/210,height-footerHeight/2);
@@ -187,7 +191,7 @@ function drawPdfPageNumber(
 export async function renderPdf(
   source:HTMLDivElement,
   rect:DOMRect,
-  {preserveBrowserTextLayout=false,repeatingPageChrome,orientation='portrait'}:PdfRenderOptions={},
+  {preserveBrowserTextLayout=true,repeatingPageChrome,orientation='portrait'}:PdfRenderOptions={},
 ) {
   const [{default:html2canvas},{jsPDF}]=await Promise.all([import('html2canvas'),import('jspdf')]);
   const pdf=new jsPDF({unit:'mm',format:'a4',orientation,compress:true});
@@ -199,6 +203,7 @@ export async function renderPdf(
   const tailHeight=source.scrollHeight-fullPages*pageHeight;
   const fluidPageCount=Math.max(1,fullPages+(tailHeight>8?1:0));
   const previews:string[]=[];
+  const fontFamily=getComputedStyle(source).fontFamily;
   if(repeatingPageChrome){
     const content=source.querySelector<HTMLElement>(repeatingPageChrome.contentSelector);
     const header=source.querySelector<HTMLElement>(repeatingPageChrome.headerSelector);
@@ -213,7 +218,7 @@ export async function renderPdf(
         onclone:preparePdfClone,
         scale:captureScale,
         useCORS:true,
-        backgroundColor:'#f4f0e6',
+        backgroundColor:'#ffffff',
         logging:false,
         scrollX:0,
         scrollY:0,
@@ -248,7 +253,7 @@ export async function renderPdf(
       page.height=outputHeight;
       const context=page.getContext('2d');
       if(!context)throw new Error('Unable to create repeated PDF page canvas.');
-      context.fillStyle='#f4f0e6';
+      context.fillStyle='#ffffff';
       context.fillRect(0,0,outputWidth,outputHeight);
       context.drawImage(headerCanvas,0,0,headerCanvas.width,headerCanvas.height,0,0,outputWidth,headerHeight);
       context.drawImage(
@@ -261,7 +266,7 @@ export async function renderPdf(
         0,0,footerCanvas.width,footerCanvas.height,
         0,outputHeight-footerHeight,outputWidth,footerHeight,
       );
-      drawPdfPageNumber(context,index+1,slices.length,outputWidth,outputHeight,footerHeight);
+      drawPdfPageNumber(context,index+1,slices.length,outputWidth,outputHeight,footerHeight,fontFamily);
       if(!canvasHasContent(page))throw new Error(`PDF page ${index+1} is blank.`);
       if(index>0)pdf.addPage('a4',orientation);
       const imageData=page.toDataURL('image/jpeg',.96);
@@ -288,7 +293,7 @@ export async function renderPdf(
         onclone:preparePdfClone,
         scale:browserLayoutScale,
         useCORS:true,
-        backgroundColor:'#f4f0e6',
+        backgroundColor:'#ffffff',
         logging:false,
         scrollX:0,
         scrollY:0,
@@ -311,12 +316,12 @@ export async function renderPdf(
           onclone:preparePdfClone,
           scale:2,
           useCORS:true,
-          backgroundColor:'#f4f0e6',
+          backgroundColor:'#ffffff',
           logging:false,
           scrollX:0,
           scrollY:0,
-          x:0,
-          y:job.y,
+          x:preserveBrowserTextLayout?-jobRect.left:0,
+          y:job.y-(preserveBrowserTextLayout?jobRect.top:0),
           width:Math.ceil(jobRect.width),
           height:job.height,
           windowWidth:Math.ceil(rect.width),
@@ -332,7 +337,7 @@ export async function renderPdf(
     normalized.height=Math.round(canvas.width*pdfHeight/pdfWidth);
     const normalizedContext=normalized.getContext('2d');
     if(!normalizedContext)throw new Error('Unable to create A4 page canvas.');
-    normalizedContext.fillStyle='#f4f0e6';
+    normalizedContext.fillStyle='#ffffff';
     normalizedContext.fillRect(0,0,normalized.width,normalized.height);
     const drawHeight=Math.min(canvas.height,normalized.height);
     normalizedContext.drawImage(canvas,0,0,canvas.width,drawHeight,0,0,normalized.width,drawHeight);
@@ -355,6 +360,7 @@ function groupByDate(input:Report[]) {
 
 type SchedulePageBlock = { day:string; items:Report[]; continued?:boolean };
 type SchedulePage = { blocks:SchedulePageBlock[]; first:boolean };
+const SCHEDULE_PDF_INTRO='按大会日期与报告开始时间排序。日程表不包含笔记内容；“参会打卡”可用于打印后手写勾选。场地仍以大会最终通知为准。';
 
 function ScheduleTable({day,items,continued=false,measure=false}:{day:string;items:Report[];continued?:boolean;measure?:boolean}) {
   return <section className="scheduleDay" data-measure-day={measure?day:undefined}>
@@ -386,18 +392,20 @@ function ScheduleDocument({ reports }:{reports:Report[]}) {
       const intro=root.querySelector<HTMLElement>('.pdfIntro');
       const continuationHeader=root.querySelector<HTMLElement>('.scheduleContinuationHeader');
       const footer=root.querySelector<HTMLElement>('.pdfFooter');
-      const sampleDay=root.querySelector<HTMLElement>('.scheduleDayTitle');
-      const sampleHead=root.querySelector<HTMLElement>('thead');
-      if(!page||!brandBar||!firstHeader||!intro||!continuationHeader||!footer||!sampleDay||!sampleHead)return;
+      const sampleDay=root.querySelector<HTMLElement>('.scheduleDay');
+      if(!page||!brandBar||!firstHeader||!intro||!continuationHeader||!footer||!sampleDay)return;
 
       const style=getComputedStyle(page);
       const innerHeight=page.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom);
-      const footerReserve=footer.getBoundingClientRect().height+10;
-      const firstUsed=brandBar.getBoundingClientRect().height+firstHeader.getBoundingClientRect().height+intro.getBoundingClientRect().height+22;
-      const continuationUsed=continuationHeader.getBoundingClientRect().height+14;
-      const dayHeight=sampleDay.getBoundingClientRect().height;
-      const headHeight=sampleHead.getBoundingClientRect().height;
-      const blockGap=22;
+      const outerHeight=(element:HTMLElement)=>{
+        const elementStyle=getComputedStyle(element);
+        return element.getBoundingClientRect().height+(parseFloat(elementStyle.marginTop)||0)+(parseFloat(elementStyle.marginBottom)||0);
+      };
+      const footerReserve=Math.ceil(outerHeight(footer));
+      const firstUsed=outerHeight(brandBar)+outerHeight(firstHeader)+outerHeight(intro);
+      const continuationUsed=outerHeight(continuationHeader);
+      const sampleRows=Array.from(sampleDay.querySelectorAll<HTMLElement>('tbody tr'));
+      const blockChrome=Math.ceil(outerHeight(sampleDay)-sampleRows.reduce((height,row)=>height+row.getBoundingClientRect().height,0));
       const rowHeights=new Map<number,number>();
       root.querySelectorAll<HTMLElement>('tr[data-measure-report]').forEach((row)=>rowHeights.set(Number(row.dataset.measureReport),row.getBoundingClientRect().height));
 
@@ -411,7 +419,7 @@ function ScheduleDocument({ reports }:{reports:Report[]}) {
         let cursor=0;
         let continued=false;
         while(cursor<items.length){
-          const fixed=dayHeight+headHeight+(current.blocks.length?blockGap:0);
+          const fixed=blockChrome;
           const firstRowHeight=rowHeights.get(items[cursor].id)??42;
           if(used+fixed+firstRowHeight>capacity&&current.blocks.length){pushPage();continue;}
           const block:SchedulePageBlock={day,items:[],continued};
@@ -439,7 +447,7 @@ function ScheduleDocument({ reports }:{reports:Report[]}) {
     <div className="scheduleMeasure" ref={measureRef} aria-hidden="true">
       <section className="scheduleMeasurePage">
         <div className="pdfBrandBar"><BrandLockup compact/></div><header className="pdfCoverHeader"><div><span>PERSONAL ITINERARY · CSCO 2026</span><h1>我的听会日程</h1></div><aside><b>{reports.length}</b><span>场已选报告</span></aside></header>
-        <p className="pdfIntro">按大会日期与报告开始时间排序。场地仍以大会最终通知为准。</p>
+        <p className="pdfIntro">{SCHEDULE_PDF_INTRO}</p>
         <header className="scheduleContinuationHeader"><BrandLockup compact/><b>我的听会日程 · 续</b></header>
         {groups.map(([day,items])=><ScheduleTable key={day} day={day} items={items} measure/>)}
         <footer className="pdfFooter"><HuiduQrCallout compact/><b>私人定制 · 仅供听会规划</b></footer>
@@ -447,7 +455,7 @@ function ScheduleDocument({ reports }:{reports:Report[]}) {
     </div>
     {pages.map((page,pageIndex)=><section className="pdfPage schedulePdfPage" key={pageIndex}>
       {page.first
-        ? <><div className="pdfBrandBar"><BrandLockup compact/></div><header className="pdfCoverHeader"><div><span>PERSONAL ITINERARY · CSCO 2026</span><h1>我的听会日程</h1></div><aside><b>{reports.length}</b><span>场已选报告</span></aside></header><p className="pdfIntro">按大会日期与报告开始时间排序。日程表不包含笔记内容；“参会打卡”可用于打印后手写勾选。场地仍以大会最终通知为准。</p></>
+        ? <><div className="pdfBrandBar"><BrandLockup compact/></div><header className="pdfCoverHeader"><div><span>PERSONAL ITINERARY · CSCO 2026</span><h1>我的听会日程</h1></div><aside><b>{reports.length}</b><span>场已选报告</span></aside></header><p className="pdfIntro">{SCHEDULE_PDF_INTRO}</p></>
         : <header className="scheduleContinuationHeader"><BrandLockup compact/><b>我的听会日程 · {pageIndex+1}</b></header>}
       <div className="schedulePageBody">{page.blocks.map((block,index)=><ScheduleTable key={`${block.day}-${index}`} day={block.day} items={block.items} continued={block.continued}/>)}</div>
       <footer className="pdfFooter"><HuiduQrCallout compact/><b>{pageIndex+1} / {pages.length} · 私人定制</b></footer>
@@ -520,7 +528,7 @@ function BatchNoteGrid({reportId,pageIndex}:{reportId:number;pageIndex:number}) 
   return <svg className="batchNoteGridPattern" aria-hidden="true" focusable="false">
     <defs>
       <pattern id={patternId} width="18.9" height="18.9" patternUnits="userSpaceOnUse">
-        <path d="M 18.9 0 L 0 0 0 18.9" fill="none" stroke="#53675b" strokeOpacity=".28" strokeWidth=".8"/>
+        <path d="M 18.9 0 L 0 0 0 18.9" fill="none" stroke="#254caf" strokeOpacity=".14" strokeWidth=".6"/>
       </pattern>
     </defs>
     <rect width="100%" height="100%" fill={`url(#${patternId})`}/>

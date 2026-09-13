@@ -109,25 +109,25 @@
 .notebook .noteRichContent ::selection,.notebook .noteRichContent::selection { background:rgba(37,76,175,.2); }
 .notebook .noteFormattingSelection { outline:1px solid var(--brand); outline-offset:1px; box-shadow:inset 0 0 0 1000px rgba(37,76,175,.16); }
 @media (prefers-reduced-motion:reduce) { .noteFormatPalette,.noteFormatTools * { animation:none!important; transition:none!important; } }
-.singleNoteDocument .notebookPdfMetadata { background:#eef3fb; }
+.singleNoteDocument .notebookPdfMetadata { background:var(--pdf-panel); }
 .singleNoteDocument .notebookPdfMetadata > div { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .singleNoteDocument .notebookPdfMetadata > div span { padding:2.5mm 2mm; font-size:8pt; line-height:1.5; overflow-wrap:anywhere; }
 .singleNoteDocument .notebookPdfMetadata i { font-size:6.5pt; }
 .singleNoteDocument .singleNoteRichText { min-height:30mm; }
-.notebookPdfSlides h2 { font-size:15pt; margin:5mm 0; }
+.notebookPdfSlides h2 { font:650 15pt/1.4 var(--font-body); margin:5mm 0; }
 .notebookPdfSlides article { margin:0 0 6mm; }
-.notebookPdfSlides figure { margin:0; padding:3mm; border:.3mm solid #9cabc4; background:white; }
+.notebookPdfSlides figure { margin:0; padding:3mm; border:.25mm solid var(--pdf-rule); border-radius:3mm; background:var(--pdf-panel); box-shadow:var(--pdf-shadow); }
 .notebookPdfSlides figcaption { display:flex; flex-wrap:wrap; align-items:center; gap:2mm; margin:0 0 3mm; font-size:9pt; line-height:1.5; overflow-wrap:anywhere; }
 .notebookPdfSlides figcaption b { flex:1; }
-.notebookPdfSlides figcaption strong { border:.3mm solid #254caf; border-radius:1mm; padding:.5mm 2mm; color:#0c1b3a; font-size:8pt; }
+.notebookPdfSlides figcaption strong { border:.25mm solid rgba(236,103,73,.35); border-radius:1.5mm; padding:.5mm 2mm; background:rgba(252,241,80,.22); color:var(--ink); font-size:8pt; }
 .notebookPdfSlides figcaption span { flex-basis:100%; color:#56637a; font-size:7pt; }
 .notebookPdfSlides img { display:block; width:100%; height:auto; max-height:155mm; object-fit:contain; }
 .notebookPdfPhotoId { margin:1.5mm 0; color:#56637a; font-size:6.5pt; overflow-wrap:anywhere; }
-.notebookPdfAnnotation { padding:3mm; background:#eef3fb; font-size:9pt; line-height:1.7; }
+.notebookPdfAnnotation { padding:3mm; border-left:.6mm solid var(--coral); border-radius:0 2mm 2mm 0; background:var(--pdf-panel); font-size:9pt; line-height:1.7; }
 .notebookPdfAnnotation p { white-space:pre-wrap; overflow-wrap:anywhere; margin:1mm 0 0; }
-.notebookPdfAudioNotice { padding:3mm; background:#eef3fb; font-size:8.5pt; line-height:1.7; }
-.singleNoteDocument .pdfRecordingList > header { background:#0c1b3a; color:white; }
-.singleNoteDocument .pdfRecordingList > div > b { color:#254caf; }
+.notebookPdfAudioNotice { margin:0; padding:3mm; background:var(--pdf-panel); color:var(--muted); font-size:8.5pt; line-height:1.7; }
+.singleNoteDocument .pdfRecordingList > header { background:linear-gradient(115deg,#0c1b3a,#254caf); color:#ffffff; }
+.singleNoteDocument .pdfRecordingList > div > b { color:var(--brand); }
 .singleNoteDocument .pdfRecordingList > div > small { font-size:7pt; line-height:1.6; }
 @media (min-width:1000px) {
   .notebookWorkspace { grid-template-columns:minmax(0,1fr) 200px; }
