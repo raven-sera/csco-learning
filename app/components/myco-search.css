@@ -55,8 +55,7 @@
   .mycoShell .reportCard:hover { transform:translateY(-3px); border-color:var(--line-strong); box-shadow:0 14px 32px rgba(37,76,175,.12),inset 0 1px 0 #ffffff; }
   .mycoShell .reportCard:active { transform:translateY(0) scale(.995); }
   .mycoShell .reportCard h3 { font:600 17px/1.7 Arial,"Microsoft YaHei",sans-serif; margin:16px 0; letter-spacing:0; }
-  .mycoShell .reportCard .contentTypeTag,.mycoShell .reportCard .cancerTag { border:0; border-radius:8px; font-size:10px; padding:5px 8px; }
-  .mycoShell .reportCard .contentTypeTag { background:rgba(37,76,175,.09); color:var(--brand); }
+  .mycoShell .reportCard .cancerTag { border:0; border-radius:8px; font-size:10px; padding:5px 8px; }
   .mycoShell .reportCard .cancerTag { background:rgba(236,103,73,.17); color:var(--ink); }
   .mycoShell .reportCard .directionRow span { font-size:10px; color:var(--muted); background:var(--paper); border:0; border-radius:6px; }
   .mycoShell .reportCard .programLine { border-color:var(--line); padding:12px 0; }

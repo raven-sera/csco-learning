@@ -360,11 +360,11 @@ function ScheduleTable({day,items,continued=false,measure=false}:{day:string;ite
   return <section className="scheduleDay" data-measure-day={measure?day:undefined}>
     <div className="scheduleDayTitle"><span>{day}{continued?' · 续':''}</span><b>{items.length} 场{continued?'（本页）':''}</b></div>
     <table>
-      <thead><tr><th>时间</th><th>会议内容</th><th>汇报人</th><th>人员单位</th><th>地点</th><th>类型 / 专场</th><th>参会打卡</th></tr></thead>
+      <thead><tr><th>时间</th><th>会议内容</th><th>汇报人</th><th>人员单位</th><th>地点</th><th>专场</th><th>参会打卡</th></tr></thead>
       <tbody>{items.map((report)=><tr key={report.id} data-measure-report={measure?report.id:undefined}>
         <td><b>{report.dateTime.replace(`${day} `,'')}</b></td>
         <td>{report.sourceTitle}</td><td>{report.speaker}</td><td>{report.institution}</td><td>{report.location}</td>
-        <td><b>{report.kind}</b><small>{report.program}{report.session ? ` · ${report.session}` : ''}</small></td>
+        <td><small>{report.program}{report.session ? ` · ${report.session}` : ''}</small></td>
         <td className="attendanceCell"><span className="attendanceBox">□</span><small>到场</small></td>
       </tr>)}</tbody>
     </table>
@@ -598,7 +598,7 @@ function BatchReportNotes({report,note}:{report:Report;note:string}) {
         <div><span>CSCO 2026 · REPORT NOTES</span><b>{report.speaker}</b></div>
       </header>
       <section className="batchNoteReportCard" data-pdf-keep>
-        <div className="batchNoteKicker"><span>{report.field} · {report.directions.slice(0,2).join(' / ')}</span></div>
+        <div className="batchNoteKicker"><span>{report.field}{report.kind === '口头报告' && ` · ${report.directions.slice(0,2).join(' / ')}`}</span></div>
         <h1>{report.sourceTitle}</h1>
         <dl>
           <div><dt>时间</dt><dd>{report.dateTime}</dd></div>

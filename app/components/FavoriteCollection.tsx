@@ -82,7 +82,7 @@ export default function FavoriteCollection({
             return (
               <article className="favoriteCollectionCard" key={report.id}>
                 <button type="button" className="favoriteCollectionOpen" onClick={() => onOpen(report)} aria-label={`查看报告：${report.sourceTitle}；${report.speaker}；${report.dateTime}${kind === 'similar' ? '；相似选项' : ''}`} title={report.sourceTitle}>
-                  <span className="favoriteCollectionTags"><span>{report.kind}</span><span>{report.kind === '汇报分享' ? report.scheduleCategory : report.field}</span></span>
+                  <span className="favoriteCollectionTags"><span>{report.kind === '汇报分享' ? report.scheduleCategory : report.field}</span></span>
                   <span className="favoriteCollectionTitle">{kind === 'similar' && <span className="favoriteCollectionSimilar">相似</span>}{report.sourceTitle}</span>
                   <span className="favoriteCollectionMeta">
                     <span className="favoriteCollectionPresenter" title={`${report.speaker} · ${report.institution}`}>{report.speaker}<span className="favoriteCollectionInstitution"> · {report.institution}</span></span>

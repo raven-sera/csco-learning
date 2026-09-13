@@ -142,7 +142,7 @@ export default function MySchedule({
               <button className="compactScheduleReportOpen" type="button" onClick={() => onOpen(report)} title={`${report.sourceTitle}\n${report.speaker} · ${report.institution}\n${report.dateTime} · ${report.location}`} aria-label={`查看报告：${report.sourceTitle}；${report.speaker}；${report.dateTime}`}>
                 <strong>{report.sourceTitle}</strong><span>{report.speaker || '讲者待确认'}<i> · {report.location}</i>{conflict && <b className="compactScheduleConflictMark"> · 时间重叠</b>}</span>
               </button>
-              <div className="compactScheduleReportTime"><time title={report.dateTime}>{reportTime(report)}</time><span>{day === 'all' ? dayLabel(reportDay(report)).replace(/^\d{4}\./, '') : isNext ? ongoing ? '正在进行' : '下一场' : report.kind}</span></div>
+              <div className="compactScheduleReportTime"><time title={report.dateTime}>{reportTime(report)}</time>{(day === 'all' || isNext) && <span>{day === 'all' ? dayLabel(reportDay(report)).replace(/^\d{4}\./, '') : ongoing ? '正在进行' : '下一场'}</span>}</div>
               <button className="compactScheduleReportMore" type="button" aria-label={`更多操作：${report.sourceTitle}`} title="报告操作" aria-haspopup="dialog" onClick={() => setActionReport(report)}>•••</button>
             </article>;
           })}

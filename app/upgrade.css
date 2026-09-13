@@ -43,7 +43,7 @@
   .reportCard { box-shadow:var(--shadow-sm); animation:none; transition:border-color .16s ease,box-shadow .16s ease; background:#fff; border-radius:16px; }
   .reportCard:hover { transform:none; border-color:var(--brand); box-shadow:0 8px 24px #254caf12; }
   .reportCard h3 { font-family:Arial,"Microsoft YaHei",sans-serif; font-size:20px; font-weight:700; line-height:1.6; }
-  .reportCard .contentTypeTag,.reportCard .cancerTag,.reportCard .directionRow span { font-size:12px; }
+  .reportCard .cancerTag,.reportCard .directionRow span { font-size:12px; }
   .reportCard .programLine { line-height:1.6; }
   .reportCard .programLine > span,.reportCard .programLine > b { font-size:12px; }
   .reportCard .programLine > strong { font-size:14px; }

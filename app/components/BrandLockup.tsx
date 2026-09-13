@@ -1,11 +1,10 @@
 import { publicPath } from '../lib/sitePaths';
 
-export const BRAND_SLOGAN_CN = '汇聚真知，传播有度';
-export const BRAND_SLOGAN_EN = 'Where Knowledge Converges, Communication Finds Its Measure.';
+export const BRAND_SLOGAN_CN = '医界望远镜';
 
 export function BrandLogo({ compact=false }:{ compact?:boolean }) {
   return <span className={`huiduBrand ${compact?'isCompact':''}`}>
-    <img src={publicPath('/huidu-logo.png')} alt="汇度 HUIDU" />
+    <img src={publicPath('/huidu-logo.png')} alt="Dotnet汇度" />
   </span>;
 }
 
@@ -13,7 +12,7 @@ export function BrandLockup({ compact=false, inverse=false }:{ compact?:boolean;
   return <div className={`huiduLockup ${compact?'isCompact':''} ${inverse?'isInverse':''}`}>
     <BrandLogo compact={compact}/>
     <span className="huiduDivider" aria-hidden="true" />
-    <span className="huiduSlogan"><b>{BRAND_SLOGAN_CN}</b>{!compact&&<small>{BRAND_SLOGAN_EN}</small>}</span>
+    <span className="huiduSlogan"><b>{BRAND_SLOGAN_CN}</b></span>
   </div>;
 }
 

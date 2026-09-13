@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BrandLockup } from './BrandLockup';
+import { BrandLockup, BRAND_SLOGAN_CN } from './BrandLockup';
 import { PORTAL_ENTER_EVENT, safeReturnPath } from '../lib/entryNavigation';
 import './site-portal.css';
 
@@ -43,15 +43,13 @@ export default function SitePortal() {
       </header>
       <section className="cscoPortalWelcome" aria-labelledby="portal-title">
         <div className="cscoPortalWelcomeCopy">
-          <p className="cscoPortalEyebrow"><span /> YOUR CSCO, CONNECTED.</p>
-          <h1 id="portal-title">让每一次相遇，<br /><em>成为自己的收获。</em></h1>
-          <p className="cscoPortalIntro">从一场报告到一份思考。<br />在这里，连接你的会议日程与学术发现。</p>
+          <p className="cscoPortalEyebrow"><span /> where there is knowledge, there is no edge.</p>
+          <h1 id="portal-title">从这里，<br /><em>看医界，无边界</em></h1>
         </div>
         <div className="cscoPortalOrbit" aria-hidden="true">
           <div className="cscoPortalOrbitRing" />
           <div className="cscoPortalOrbitCore"><span>My</span><strong>CSCO</strong></div>
           <span className="cscoPortalOrbitDot" />
-          <span className="cscoPortalOrbitLabel">DISCOVER · KEEP · REVISIT</span>
         </div>
       </section>
       {resuming && <p className="cscoPortalResume" role="status">欢迎回来。进入 MyCO，即可继续刚才打开的内容。</p>}
@@ -83,7 +81,7 @@ export default function SitePortal() {
           <div className="cscoPortalPending"><span>入口准备中</span><span aria-hidden="true">—</span></div>
         </article>
       </section>
-      <footer className="cscoPortalFooter"><span>汇聚真知，传播有度</span><p>笔记与日程仅保存在当前浏览器，请定期导出备份。</p><span className="cscoPortalFooterYear">HUIDU / 2026</span></footer>
+      <footer className="cscoPortalFooter"><span>{BRAND_SLOGAN_CN}</span><p>笔记与日程仅保存在当前浏览器，请定期导出备份。</p><span className="cscoPortalFooterYear">HUIDU / 2026</span></footer>
     </div>
   </main>;
 }

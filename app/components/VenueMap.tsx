@@ -15,7 +15,6 @@ export type VenueMapProps = {
 
 type Scene = {
   setFloor: (floor: VenueMapProps['floor']) => void;
-  setMode: (overhead: boolean) => void;
   setSelection: (selected: readonly string[], scheduled: readonly string[], references: readonly string[]) => void;
   setActive: (active: boolean) => void;
   zoom: (factor: number) => void;
@@ -79,7 +78,7 @@ const EMPTY_REGIONS: readonly string[] = [];
 
 export default function VenueMap(props: VenueMapProps) {
   const { floor, onFloorChange, selectedRegionIds, scheduledRegionIds, referenceRegionIds = EMPTY_REGIONS, onSelectRegion } = props;
-  const [mode, setMode] = useState<'3d' | 'overhead' | 'source'>('3d');
+  const [mode, setMode] = useState<'3d' | 'source'>('3d');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -127,7 +126,6 @@ export default function VenueMap(props: VenueMapProps) {
         regionId => latest.current.onSelectRegion(regionId), fail);
       scene.current = owned;
       owned.setFloor(current.floor);
-      owned.setMode(latestMode.current === 'overhead');
       owned.setSelection(current.selectedRegionIds, current.scheduledRegionIds, current.referenceRegionIds ?? EMPTY_REGIONS);
       owned.setActive(latestMode.current !== 'source');
       setLoading(false);
@@ -144,9 +142,8 @@ export default function VenueMap(props: VenueMapProps) {
     scene.current?.setSelection(selectedRegionIds, scheduledRegionIds, referenceRegionIds);
   }, [selectedRegionIds, scheduledRegionIds, referenceRegionIds]);
   useEffect(() => {
-    scene.current?.setMode(mode === 'overhead');
     scene.current?.setActive(!sourceVisible);
-  }, [mode, sourceVisible]);
+  }, [sourceVisible]);
   useEffect(() => {
     sourceScroller.current?.scrollTo({ left: 0, top: 0 });
   }, [sourceFloor]);
@@ -169,7 +166,6 @@ export default function VenueMap(props: VenueMapProps) {
       </div>
       <div className="venueMapControlGroup" role="group" aria-label="地图显示方式">
         <button type="button" aria-pressed={!sourceVisible && mode === '3d'} disabled={Boolean(error)} onClick={() => setMode('3d')}>立体</button>
-        <button type="button" aria-pressed={!sourceVisible && mode === 'overhead'} disabled={Boolean(error)} onClick={() => setMode('overhead')}>俯视</button>
         <button type="button" aria-pressed={sourceVisible} onClick={() => setMode('source')}>原图</button>
       </div>
     </div>

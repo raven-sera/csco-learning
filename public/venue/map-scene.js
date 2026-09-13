@@ -13,7 +13,6 @@
       this.onSelect = onSelect;
       this.onError = onError;
       this.floor = 1;
-      this.overhead = false;
       this.active = true;
       this.disposed = false;
       this.pendingFrame = 0;
@@ -171,22 +170,12 @@
       const all = floor === 'all';
       this.floorGroups[1].visible = all || floor === 1;
       this.floorGroups[2].visible = all || floor === 2;
-      this.floorGroups[2].position.set(0, all && !this.overhead ? 46 : 0, 0);
-      if (all && this.overhead) {
-        const first = new T.Box3().setFromObject(this.floorGroups[1]);
-        const second = new T.Box3().setFromObject(this.floorGroups[2]);
-        this.floorGroups[2].position.x = first.max.x - second.min.x + 14;
-      }
+      this.floorGroups[2].position.set(0, all ? 46 : 0, 0);
       this.bounds = new T.Box3();
       for (const group of Object.values(this.floorGroups)) if (group.visible) this.bounds.union(new T.Box3().setFromObject(group));
       this.target = this.bounds.getCenter(new T.Vector3());
       this.renderer.shadowMap.needsUpdate = true;
       this.updateCamera();
-    }
-
-    setMode(overhead) {
-      this.overhead = overhead;
-      this.setFloor(this.floor);
     }
 
     setSelection(selected, scheduled, references) {
@@ -228,7 +217,7 @@
 
     updateCamera() {
       if (!this.width || !this.height || !this.bounds) return;
-      const pitch = this.overhead ? Math.PI / 2 - 0.001 : this.pitch;
+      const pitch = this.pitch;
       this.camera.position.set(
         this.target.x + Math.sin(this.yaw) * Math.cos(pitch) * 220,
         this.target.y + Math.sin(pitch) * 220,
@@ -299,7 +288,7 @@
         if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 5) drag.moved = true;
         if (drag.moved) {
           this.yaw -= (event.clientX - drag.x) * 0.006;
-          if (!this.overhead) this.pitch = T.MathUtils.clamp(this.pitch + (event.clientY - drag.y) * 0.004, 0.28, 1.48);
+          this.pitch = T.MathUtils.clamp(this.pitch + (event.clientY - drag.y) * 0.004, 0.28, 1.48);
           this.updateCamera();
         }
         drag.x = event.clientX;

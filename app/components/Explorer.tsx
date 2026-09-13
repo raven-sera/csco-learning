@@ -130,7 +130,6 @@ const ReportCard = memo(function ReportCard({
       />
       <div className="cardTopline">
         <div className="cardTagGroup">
-          <span className="contentTypeTag" data-kind={report.kind}>{report.kind}</span>
           <span className="cancerTag">{report.kind === '汇报分享' ? report.scheduleCategory : report.field}</span>
         </div>
       </div>
@@ -190,7 +189,7 @@ function DetailView({ report, onClose, onLocate, favorite, onToggleFavorite, sch
         <h1 id="detail-title">{report.sourceTitle}</h1>
         <div className="notebookReportLine"><span>{report.dateTime}</span><span>{report.location}</span></div>
         <details className="notebookReportDetails"><summary>完整报告信息与日程</summary>
-          <dl><div><dt>报告人</dt><dd>{report.speaker} · {report.institution}</dd></div><div><dt>专场</dt><dd>{report.program}{report.session ? ` / ${report.session}` : ''}</dd></div><div><dt>类型</dt><dd>{report.kind} · {report.scheduleCategory}</dd></div></dl>
+          <dl><div><dt>报告人</dt><dd>{report.speaker} · {report.institution}</dd></div><div><dt>专场</dt><dd>{report.program}{report.session ? ` / ${report.session}` : ''}</dd></div><div><dt>日程类别</dt><dd>{report.scheduleCategory}</dd></div></dl>
           <div><button className="venueLocateButton" onClick={() => onLocate(report)}>查看会场</button><button onClick={() => onToggleSchedule(report)} aria-pressed={scheduled}>{scheduled ? '已加入日程' : '加入日程'}</button><a href={report.officialUrl} target="_blank" rel="noreferrer">官方日程 ↗</a></div>
         </details>
         <nav className="notebookQuickActions" aria-label="本场笔记快捷操作">
@@ -323,7 +322,7 @@ function SearchPanel({
         {(query || activeFilterCount > 0) && <button type="button" onClick={onReset}>重置筛选</button>}
       </div></>}
     </form>
-    {!hasResults && <div className="mycoSearchSuggestions"><span>试试搜索</span>{['肺癌', '免疫治疗', '葛睿'].map(item => <button key={item} onClick={() => onQueryChange(item)}>{item}<span aria-hidden="true">↗</span></button>)}</div>}
+    {!hasResults && <div className="mycoSearchSuggestions"><span>试试搜索</span>{['肺癌', '免疫治疗'].map(item => <button key={item} onClick={() => onQueryChange(item)}>{item}<span aria-hidden="true">↗</span></button>)}</div>}
     {!hasResults && <p className="mycoSearchCatalog">{reports.length} 场会议内容，等你发现。<button onClick={onBrowseAll}>浏览全部报告 →</button></p>}
     {filtersOpen && <div className="mycoFilterOverlay" onClick={event => { if (event.target === event.currentTarget) setFiltersOpen(false); }}>
       <div className="mycoFilterDialog" role="dialog" aria-modal="true" aria-labelledby="myco-filter-title">
