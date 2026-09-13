@@ -690,19 +690,18 @@ function SingleNoteDocument({ report, html, textLength, recordings, photos, meta
           <div><span>CSCO 2026 · REPORT NOTE</span><h1>单场听会笔记</h1></div>
         </header>
         <section className="singleNoteReport notebookPdfMetadata">
-          <small>{report.field}{report.kind === '口头报告' && ` · ${report.directions.join(' / ')}`}</small>
+          {report.field && <small>癌种：{report.field}</small>}
           <h2>{report.sourceTitle}</h2>
           <div>
             <span><i>时间</i>{report.dateTime}</span>
             <span><i>报告人</i>{report.speaker}</span>
             <span><i>单位</i>{report.institution}</span>
-            <span><i>地点</i>{report.location || '未公布'}</span>
-            <span><i>报告编号 / 摘要编号</i>{report.id} / {report.abstractNo || '无'}</span>
-            <span><i>日程类别</i>{report.scheduleCategory}</span>
+            <span><i>地点</i>{report.location}</span>
+            <span><i>报告编号</i>{report.id}</span>
             <span><i>专场</i>{report.program}</span>
-            <span><i>Session</i>{report.session || '无'}</span>
+            <span><i>Session</i>{report.session}</span>
+            {report.chair && <span><i>主持</i>{report.chair}</span>}
             <span><i>个人标签</i>{meta.tags.join('、') || '无'}</span>
-            <span className="notebookPdfOfficial"><i>官方日程</i>{report.officialUrl || '未提供'}</span>
           </div>
         </section>
         <section className="singleNoteBody singleNoteRichBody">

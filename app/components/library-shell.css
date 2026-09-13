@@ -4,15 +4,15 @@
   .notebookDetailShell { --notebook-topbar-height:64px; max-width:1600px; margin:auto; min-height:100svh; background:linear-gradient(145deg,rgba(255,255,255,.62),rgba(238,243,251,.72)); }
   .notebookDetailShell .detailTopbar { background:var(--glass-raised); min-height:64px; height:auto; padding:10px clamp(16px,4vw,64px); border-bottom:1px solid var(--glass-border); box-shadow:0 4px 20px rgba(12,27,58,.06); backdrop-filter:blur(20px) saturate(145%); z-index:25; }
   .notebookReportHeader { padding:24px clamp(16px,4vw,64px) 12px; }
-  .notebookReportHeader > p { margin:0 0 8px; color:var(--brand); font-size:14px; font-weight:700; }
-  .notebookReportHeader h1 { max-width:1200px; margin:0; font:750 clamp(21px,2.2vw,32px)/1.5 Arial,"Microsoft YaHei",sans-serif; color:var(--ink); overflow-wrap:anywhere; }
+  .notebookReportHeader > p { margin:0 0 8px; color:var(--brand); font-size:14px; font-weight:700; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .notebookReportHeader h1 { max-width:1200px; margin:0; font:750 clamp(21px,2.2vw,32px)/1.5 Arial,"Microsoft YaHei",sans-serif; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; }
   .notebookReportLine { display:flex; flex-wrap:wrap; gap:4px 20px; margin-top:12px; color:var(--muted); font-size:14px; }
   .notebookReportDetails { margin-top:10px; color:var(--muted); font-size:14px; }
   .notebookReportDetails summary { display:list-item; cursor:pointer; min-height:44px; padding:10px 0; }
   .notebookReportDetails dl { display:grid; gap:8px; margin:4px 0 12px; }
   .notebookReportDetails dl > div { display:flex; gap:16px; }
   .notebookReportDetails dt { flex:none; min-width:44px; color:var(--muted); }
-  .notebookReportDetails dd { margin:0; }
+  .notebookReportDetails dd { min-width:0; margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
   .notebookReportDetails > div,.notebookQuickActions { display:flex; gap:8px; flex-wrap:wrap; }
   .notebookReportDetails button,.notebookReportDetails a,.notebookQuickActions button { min-height:44px; padding:8px 15px; border:1px solid var(--line); border-radius:10px; background:var(--glass-raised); font:600 14px/1.5 Arial,"Microsoft YaHei",sans-serif; color:var(--ink); cursor:pointer; }
   .notebookQuickActions { margin:12px 0 0; }

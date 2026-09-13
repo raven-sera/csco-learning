@@ -72,6 +72,30 @@ const byLocation = new Map(venues.map(venue => [
   venue,
 ]));
 
+// These workbook aliases identify exact venues; do not infer buildings from arbitrary floor prefixes.
+const workbookLocations: readonly [string, string][] = [
+  ['主会场-山东会堂', 'sd-f1-shandong'],
+  ['1F-影视会议厅', 'sd-f1-movie'],
+  ['1F-仁和厅', 'sd-f1-renhe'],
+  ['1F-山东财金厅', 'sd-f1-finance'],
+  ['1F-中泰证券厅', 'sd-f1-zhongtai'],
+  ['1F-青未了厅', 'sd-f1-evergreen'],
+  ['1F-日照厅', 'sd-f1-rizhao'],
+  ['2F-海右泺源厅', 'sd-f2-haiyou-luoyuan'],
+  ['2F-泰安厅', 'sd-f2-taian'],
+  ['2F-中华厅', 'sd-f2-zhonghua'],
+  ['2F-青岛厅', 'sd-f2-qingdao'],
+  ['2F-济南厅', 'sd-f2-jinan'],
+  ['南郊俱乐部-1F-大礼堂', 'nj-club-f1-auditorium'],
+  ['南郊俱乐部-1F-会议厅', 'nj-club-f1-meeting'],
+  ['南郊俱乐部-3F-多功能厅', 'nj-club-f3-multifunction'],
+  ['南郊俱乐部-4F-小礼堂', 'nj-club-f4-auditorium'],
+  ['1F-金色大厅', 'sd-f1-golden'],
+];
+for (const [location, id] of workbookLocations) {
+  byLocation.set(location, byId.get(id)!);
+}
+
 export function resolveVenue(location: string): Venue | null {
   return byLocation.get(normalizeLocation(location)) ?? null;
 }

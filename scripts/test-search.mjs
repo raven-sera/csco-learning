@@ -12,10 +12,14 @@ const api = {};
 vm.runInThisContext(`(function(require,exports){${code}\n})`, { filename: file.pathname })(createRequire(file), api);
 const { reports, searchMatch } = api;
 
-const ge = reports.find(report => report.speaker === '葛睿');
-const meng = reports.find(report => report.speaker === '孟睿');
-const hu = reports.find(report => report.speaker === '胡睿');
-assert.ok(ge && meng && hu, 'Official speaker fixtures must remain available');
+const fixture = {
+  id: -1, kind: '口头报告', program: '', session: '', chair: '',
+  sourceTitle: '左侧来源', speaker: '右侧来源', institution: '', dateTime: '', location: '',
+  field: '', searchAliases: '',
+};
+const ge = { ...fixture, id: -2, speaker: '葛睿' };
+const meng = { ...fixture, id: -3, speaker: '孟睿' };
+const hu = { ...fixture, id: -4, speaker: '胡睿' };
 const exactName = searchMatch(ge, '葛睿');
 assert.equal(exactName.kind, 'exact');
 for (const other of [meng, hu]) {
@@ -30,18 +34,15 @@ assert.equal(searchMatch(lung, '肺癌').kind, 'exact');
 assert.equal(searchMatch(lung, 'feiai').kind, 'similar', 'Generated pinyin must not claim a literal source match');
 assert.equal(searchMatch(lung, '肺按').kind, 'similar', 'Generated Chinese correction aliases must remain searchable');
 
-const fixture = {
-  id: -1, kind: '口头报告', scheduleCategory: '主日程', program: '', session: '', abstractNo: '',
-  sourceTitle: '左侧来源', speaker: '右侧来源', institution: '', dateTime: '', location: '',
-  field: '', directions: ['第一研究方向', '第二研究方向'], officialUrl: '', searchAliases: '',
-};
 assert.equal(searchMatch(fixture, '左侧来源右侧来源').kind, 'none', 'Adjacent metadata fields must not manufacture a phrase');
-assert.equal(searchMatch(fixture, '第一研究方向第二研究方向').kind, 'none', 'Separate directions must not manufacture a phrase');
+assert.equal(searchMatch({ ...fixture, speaker: '讲者甲\n讲者乙' }, '讲者甲讲者乙').kind, 'none', 'Separate source speaker lines must not manufacture a phrase');
+assert.equal(searchMatch({ ...fixture, field: '肺癌；肝癌' }, '肺癌肝癌').kind, 'none', 'Separate source cancer types must not manufacture a phrase');
+assert.equal(searchMatch({ ...fixture, chair: '主持甲\n主持乙' }, '主持乙').kind, 'exact', 'Source chair lines must remain searchable');
 assert.equal(searchMatch({ ...fixture, institution: 'Example Hospital' }, 'example hospital').kind, 'exact', 'Actual institution text is a literal source field');
 assert.equal(searchMatch({ ...fixture, sourceTitle: 'ＰＤ－Ｌ１ Ｓｔｕｄｙ' }, 'pd-L1 study').kind, 'exact', 'NFKC must run before case folding on full-width Latin source text');
 assert.equal(searchMatch(lung, 'ＦｅＩａＩ').kind, 'similar', 'Mixed-width alias queries must normalize without becoming literal matches');
 
-const mediumToken = { ...fixture, sourceTitle: 'abcdef', speaker: '', directions: [] };
+const mediumToken = { ...fixture, sourceTitle: 'abcdef', speaker: '' };
 assert.equal(searchMatch(mediumToken, 'abxyef').kind, 'similar', 'Five-to-eight-character queries retain two-edit tolerance');
 assert.equal(searchMatch(mediumToken, 'abxyzf').kind, 'none', 'Three edits must exceed the medium-query tolerance');
 assert.equal(searchMatch({ ...mediumToken, sourceTitle: 'abcdefghi' }, 'abxyzfghi').kind, 'similar', 'Longer queries retain three-edit tolerance');

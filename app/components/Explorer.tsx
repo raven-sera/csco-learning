@@ -20,56 +20,64 @@ import './library-shell.css';
 import MycoShell from './MycoShell';
 import './myco-search.css';
 import {
-  directions, fields, reports, searchMatch,
+  fields, getCancerTypes, reports, searchMatch,
   sortReportsByDateTime, type Report,
 } from '../lib/reports';
 import { createCheckInRecord, isCheckInRecord, type CheckInRecord } from '../lib/checkIn';
 
 const PAGE_SIZE = 12;
-const DEFAULT_FIELD = '全部领域';
-const DEFAULT_DIRECTION = '全部方向';
+const DEFAULT_FIELD = '全部癌种';
 const DEFAULT_TIME_SLOT = '全部时间';
 const DEFAULT_VENUE = '全部场地';
-const DEFAULT_UNIT_TYPE = '全部单位';
-const DEFAULT_SEARCH = { query: '', timeSlot: DEFAULT_TIME_SLOT, venue: DEFAULT_VENUE, unitType: DEFAULT_UNIT_TYPE, field: DEFAULT_FIELD, direction: DEFAULT_DIRECTION };
-const UNIT_TYPES = ['高校', '企业'] as const;
+const DEFAULT_UNIT_TYPE = '全部单位类型';
+const DEFAULT_SEARCH = { query: '', timeSlot: DEFAULT_TIME_SLOT, venue: DEFAULT_VENUE, unitType: DEFAULT_UNIT_TYPE, field: DEFAULT_FIELD };
+const UNIT_TYPES = ['医院', '高校', '科研院所', '企业', '其他', '未注明'] as const;
 const FAVORITES_KEY = 'csco-favorite-reports';
 const SCHEDULE_KEY = 'csco-custom-schedule-reports';
 const CHECK_IN_KEY = 'csco-report-attendance-v1';
 
 
-const ACADEMIC_UNIT_PATTERN = /大学|学院|学校|研究生院|University|Univeristy|College|School of/i;
-const ENTERPRISE_UNIT_PATTERN = /公司|集团|药业|制药|生物医药|生物科技|生物技术|医疗科技|医药科技|研发中心|Pharma|Biotech|Therapeutics|\bInc\.?\b|\bLtd\.?\b|\bLLC\b|\bCorp\.?\b|AstraZeneca|Pfizer|Roche|Novartis|Bayer|Merck|BeiGene|Janssen|Amgen|Sanofi|AbbVie|GlaxoSmithKline|Bristol.?Myers|Eli Lilly/i;
+const HOSPITAL_UNIT_PATTERN = /医院|卫生院|保健院|诊所|肿瘤防治中心|医学中心|(?:华西|附)[一二三四五六七八九十\d]+院|\bHospitals?\b|\bClinics?\b|\bMedical Cent(?:er|re)\b/i;
+const ACADEMIC_UNIT_PATTERN = /大学|学院|学校|研究生院|\bUniversity\b|\bCollege\b|\bSchool\b/i;
+const RESEARCH_UNIT_PATTERN = /研究院|研究所|科学院|研究中心|实验室|\bInstitute\b|\bResearch Cent(?:er|re)\b|\bLaborator(?:y|ies)\b/i;
+const ENTERPRISE_UNIT_PATTERN = /公司|集团|药业|制药|生物医药|生物科技|生物技术|医疗科技|医药科技|复星医药|韧致医药|默沙东|正大天晴|科睿唯安|蚂蚁技术|阿里达摩院|丁香园|\bPharma(?:ceuticals?)?\b|\bBiotech(?:nology)?\b|\bTherapeutics\b|\bInc\b|\bLtd\b|\bLLC\b|\bCorp(?:oration)?\b|\bCompany\b|Illumina|AstraZeneca|Pfizer|Roche|Novartis|Bayer|Merck|BeiGene|Janssen|Amgen|Sanofi|AbbVie|GlaxoSmithKline|Bristol.?Myers|Eli Lilly/i;
 
 function getTimeSlot(report: Report) {
-  const match = report.dateTime.match(/^\d{4}-(\d{2})-(\d{2})\s+(上午|下午|晚上)/);
+  const match = report.dateTime.match(/^\d{4}-(\d{2})-(\d{2})\s+(上午|下午|晚上|时间未注明)/);
   return match ? `${Number(match[1])}.${Number(match[2])}${match[3]}` : '';
 }
 
 function timeSlotRank(slot: string) {
-  const match = slot.match(/^(\d+)\.(\d+)(上午|下午|晚上)$/);
+  const match = slot.match(/^(\d+)\.(\d+)(上午|下午|晚上|时间未注明)$/);
   if (!match) return Number.POSITIVE_INFINITY;
-  const period = { 上午: 0, 下午: 1, 晚上: 2 }[match[3] as '上午' | '下午' | '晚上'];
+  const period = { 上午: 0, 下午: 1, 晚上: 2, 时间未注明: 3 }[match[3] as '上午' | '下午' | '晚上' | '时间未注明'];
   return Number(match[1]) * 1000 + Number(match[2]) * 10 + period;
 }
 
-function getUnitTypes(institution: string) {
-  const types: (typeof UNIT_TYPES)[number][] = [];
-  if (ACADEMIC_UNIT_PATTERN.test(institution)) types.push('高校');
-  if (ENTERPRISE_UNIT_PATTERN.test(institution)) types.push('企业');
-  return types;
+function getUnitTypes(institution: string): (typeof UNIT_TYPES)[number][] {
+  const units = institution.split(/[\r\n；;]+/).map(unit => unit.trim()).filter(Boolean);
+  if (!units.length) return ['未注明'];
+  const types = new Set<(typeof UNIT_TYPES)[number]>();
+  for (const unit of units) {
+    if (HOSPITAL_UNIT_PATTERN.test(unit)) types.add('医院');
+    else if (ENTERPRISE_UNIT_PATTERN.test(unit)) types.add('企业');
+    else if (RESEARCH_UNIT_PATTERN.test(unit)) types.add('科研院所');
+    else if (ACADEMIC_UNIT_PATTERN.test(unit)) types.add('高校');
+    else types.add('其他');
+  }
+  return [...types];
 }
 
 const TIME_SLOT_BY_REPORT_ID = new Map(reports.map((report) => [report.id, getTimeSlot(report)]));
 const UNIT_TYPES_BY_REPORT_ID = new Map(reports.map((report) => [report.id, getUnitTypes(report.institution)]));
+const CANCER_TYPES_BY_REPORT_ID = new Map(reports.map((report) => [report.id, getCancerTypes(report)]));
+const REPORT_ORDER_BY_ID = new Map(reports.map((report, index) => [report.id, index]));
 const TIME_SLOTS = Array.from(new Set(TIME_SLOT_BY_REPORT_ID.values())).filter(Boolean).sort(
   (left, right) => timeSlotRank(left) - timeSlotRank(right),
 );
-const VENUES = Array.from(new Set(reports.map((report) => report.location.trim())))
+const VENUES = Array.from(new Set(reports.map((report) => report.location)))
   .filter(Boolean)
   .sort((left, right) => left.localeCompare(right, 'zh-CN'));
-const INSTITUTIONS_BY_REPORT_ID = new Map(reports.map(report => [report.id, report.institution.split(/[；;]/).map(unit => unit.trim()).filter(Boolean)]));
-const INSTITUTIONS = Array.from(new Set(Array.from(INSTITUTIONS_BY_REPORT_ID.values()).flat())).sort((a, b) => a.localeCompare(b, 'zh-CN'));
 
 
 
@@ -128,22 +136,20 @@ const ReportCard = memo(function ReportCard({
         onClick={() => onOpen(report)}
         aria-label={`查看报告：${report.sourceTitle}`}
       />
-      <div className="cardTopline">
+      {report.field && <div className="cardTopline">
         <div className="cardTagGroup">
-          <span className="cancerTag">{report.kind === '汇报分享' ? report.scheduleCategory : report.field}</span>
+          <span className="cancerTag" title={report.field}>{report.field}</span>
         </div>
-      </div>
+      </div>}
       <h3>{report.sourceTitle}</h3>
       <div className="programLine">
         <span>专场</span>
         <strong title={report.program}>{report.program}</strong>
         {report.session && <b>{report.session}</b>}
       </div>
-      {report.kind === '口头报告' && <div className="directionRow">
-        {report.directions.slice(0, 3).map((item) => <span key={item}>{item}</span>)}
-      </div>}
       <dl>
-        <div><dt>{report.kind === '汇报分享' ? '汇报人' : '报告人'}</dt><dd>{report.speaker} · {report.institution}</dd></div>
+        <div><dt>讲者</dt><dd title={report.speaker}>{report.speaker}</dd></div>
+        <div><dt>单位</dt><dd title={report.institution}>{report.institution}</dd></div>
         <div><dt>时间</dt><dd>{report.dateTime}</dd></div>
         <div><dt>地点</dt><dd>{report.location}</dd></div>
       </dl>
@@ -185,12 +191,19 @@ function DetailView({ report, onClose, onLocate, favorite, onToggleFavorite, sch
         <div className="detailTopActions"><button className={`detailFavoriteButton ${favorite?'isFavorite':''}`} onClick={()=>onToggleFavorite(report)} aria-pressed={favorite}>{favorite?'已收藏':'收藏'}</button><Link href="/library">个人图书馆</Link></div>
       </header>
       <section className="notebookReportHeader">
-        <p>{report.field} · {report.speaker}</p>
+        {report.field && <p>{report.field}</p>}
         <h1 id="detail-title">{report.sourceTitle}</h1>
         <div className="notebookReportLine"><span>{report.dateTime}</span><span>{report.location}</span></div>
         <details className="notebookReportDetails"><summary>完整报告信息与日程</summary>
-          <dl><div><dt>报告人</dt><dd>{report.speaker} · {report.institution}</dd></div><div><dt>专场</dt><dd>{report.program}{report.session ? ` / ${report.session}` : ''}</dd></div><div><dt>日程类别</dt><dd>{report.scheduleCategory}</dd></div></dl>
-          <div><button className="venueLocateButton" onClick={() => onLocate(report)}>查看会场</button><button onClick={() => onToggleSchedule(report)} aria-pressed={scheduled}>{scheduled ? '已加入日程' : '加入日程'}</button><a href={report.officialUrl} target="_blank" rel="noreferrer">官方日程 ↗</a></div>
+          <dl>
+            <div><dt>讲者</dt><dd>{report.speaker}</dd></div>
+            <div><dt>单位</dt><dd>{report.institution}</dd></div>
+            {report.chair && <div><dt>主持</dt><dd>{report.chair}</dd></div>}
+            <div><dt>专场</dt><dd>{report.program}</dd></div>
+            {report.session && <div><dt>环节</dt><dd>{report.session}</dd></div>}
+            {report.kind && <div><dt>类型</dt><dd>{report.kind}</dd></div>}
+          </dl>
+          <div><button className="venueLocateButton" onClick={() => onLocate(report)}>查看会场</button><button onClick={() => onToggleSchedule(report)} aria-pressed={scheduled}>{scheduled ? '已加入日程' : '加入日程'}</button></div>
         </details>
         <nav className="notebookQuickActions" aria-label="本场笔记快捷操作">
           <button onClick={() => requestNotebook(report.id, { section:'slides', capture:true, mode:'edit' })}>拍 PPT</button>
@@ -282,26 +295,25 @@ function useAttendance() {
 
 
 function SearchPanel({
-  query, timeSlot, venue, unitType, field, direction, updating, hasResults, compact = false,
+  query, timeSlot, venue, unitType, field, updating, hasResults, compact = false,
   onQueryChange, onTimeSlotChange, onVenueChange, onUnitTypeChange,
-  onFieldChange, onDirectionChange, onReset, onSearch, onBrowseAll,
+  onFieldChange, onReset, onSearch, onBrowseAll,
 }: {
-  query: string; timeSlot: string; venue: string; unitType: string; field: string; direction: string;
+  query: string; timeSlot: string; venue: string; unitType: string; field: string;
   updating: boolean; hasResults: boolean; compact?: boolean;
   onQueryChange: (value: string) => void; onTimeSlotChange: (value: string) => void;
   onVenueChange: (value: string) => void; onUnitTypeChange: (value: string) => void;
-  onFieldChange: (value: string) => void; onDirectionChange: (value: string) => void;
+  onFieldChange: (value: string) => void;
   onReset: () => void; onSearch: () => void; onBrowseAll: () => void;
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   useDialog('.mycoFilterDialog', () => setFiltersOpen(false), filtersOpen);
-  const activeFilterCount = [timeSlot !== DEFAULT_TIME_SLOT, venue !== DEFAULT_VENUE, unitType !== DEFAULT_UNIT_TYPE, field !== DEFAULT_FIELD, direction !== DEFAULT_DIRECTION].filter(Boolean).length;
+  const activeFilterCount = [timeSlot !== DEFAULT_TIME_SLOT, venue !== DEFAULT_VENUE, unitType !== DEFAULT_UNIT_TYPE, field !== DEFAULT_FIELD].filter(Boolean).length;
   const filters = <div className="filterRow">
     <label><span>时间</span><select value={timeSlot} onChange={event => onTimeSlotChange(event.target.value)}><option>{DEFAULT_TIME_SLOT}</option>{TIME_SLOTS.map(item => <option key={item}>{item}</option>)}</select></label>
     <label><span>场地</span><select value={venue} onChange={event => onVenueChange(event.target.value)}><option>{DEFAULT_VENUE}</option>{VENUES.map(item => <option key={item}>{item}</option>)}</select></label>
-    <label><span>单位</span><select value={unitType} onChange={event => onUnitTypeChange(event.target.value)}><option>{DEFAULT_UNIT_TYPE}</option><optgroup label="按单位类型">{UNIT_TYPES.map(item => <option key={item}>{item}</option>)}</optgroup><optgroup label="按具体单位">{INSTITUTIONS.map(item => <option key={item}>{item}</option>)}</optgroup></select></label>
-    <label><span>领域</span><select value={field} onChange={event => onFieldChange(event.target.value)}><option>{DEFAULT_FIELD}</option>{fields.map(item => <option key={item}>{item}</option>)}</select></label>
-    <label><span>研究方向</span><select value={direction} onChange={event => onDirectionChange(event.target.value)}><option>{DEFAULT_DIRECTION}</option>{directions.map(item => <option key={item}>{item}</option>)}</select></label>
+    <label title="单位类型按表中单位名称归组，仅供筛选；多单位可归入多类。"><span>单位类型</span><select value={unitType} onChange={event => onUnitTypeChange(event.target.value)}><option>{DEFAULT_UNIT_TYPE}</option>{UNIT_TYPES.map(item => <option key={item}>{item}</option>)}</select></label>
+    <label><span>癌种</span><select value={field} onChange={event => onFieldChange(event.target.value)}><option>{DEFAULT_FIELD}</option>{fields.map(item => <option key={item}>{item}</option>)}</select></label>
   </div>;
   return <section className={`mycoSearch ${hasResults ? 'hasResults' : ''}${compact ? ' isCompactSearch' : ''}`} aria-label={compact ? '检索收藏' : '报告检索'}>
     {!compact && <div className="mycoSearchIntro">
@@ -467,17 +479,17 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
       if (initialPage === 'favorites' && !favoriteSet.has(report.id)) continue;
       if (criteria.timeSlot !== DEFAULT_TIME_SLOT && TIME_SLOT_BY_REPORT_ID.get(report.id) !== criteria.timeSlot) continue;
       if (criteria.venue !== DEFAULT_VENUE && report.location !== criteria.venue) continue;
-      if (criteria.unitType !== DEFAULT_UNIT_TYPE && !INSTITUTIONS_BY_REPORT_ID.get(report.id)?.includes(criteria.unitType) && !UNIT_TYPES_BY_REPORT_ID.get(report.id)?.includes(criteria.unitType as (typeof UNIT_TYPES)[number])) continue;
-      if (criteria.field !== DEFAULT_FIELD && report.field !== criteria.field) continue;
-      if (criteria.direction !== DEFAULT_DIRECTION && !report.directions.includes(criteria.direction)) continue;
+      if (criteria.unitType !== DEFAULT_UNIT_TYPE && !UNIT_TYPES_BY_REPORT_ID.get(report.id)?.includes(criteria.unitType as (typeof UNIT_TYPES)[number])) continue;
+      if (criteria.field !== DEFAULT_FIELD && !CANCER_TYPES_BY_REPORT_ID.get(report.id)?.includes(criteria.field)) continue;
       const match = searchMatch(report, criteria.query);
       if (match.kind !== 'none') matches.push({ report, ...match });
     }
     matches.sort((a, b) => {
       const groupOrder = Number(a.kind === 'similar') - Number(b.kind === 'similar');
       if (groupOrder) return groupOrder;
-      if (sortOrder === 'time') return a.report.dateTime.localeCompare(b.report.dateTime, 'zh-CN') || a.report.id - b.report.id;
-      return (hasQuery ? b.score - a.score : 0) || a.report.id - b.report.id;
+      const sourceOrder = REPORT_ORDER_BY_ID.get(a.report.id)! - REPORT_ORDER_BY_ID.get(b.report.id)!;
+      if (sortOrder === 'time') return a.report.dateTime.localeCompare(b.report.dateTime, 'zh-CN') || sourceOrder;
+      return (hasQuery ? b.score - a.score : 0) || sourceOrder;
     });
     return matches;
   }, [showResults, initialPage, criteria, sortOrder, favoriteSet]);
@@ -655,7 +667,6 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
     onVenueChange={venue => setDraft(value => ({ ...value, venue }))}
     onUnitTypeChange={unitType => setDraft(value => ({ ...value, unitType }))}
     onFieldChange={field => setDraft(value => ({ ...value, field }))}
-    onDirectionChange={direction => setDraft(value => ({ ...value, direction }))}
     onReset={resetFilters}
     onSearch={() => { setSubmitted(draft); setPage(1); }}
     onBrowseAll={browseReports}

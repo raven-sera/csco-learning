@@ -26,9 +26,9 @@ function load(file) {
 const { parseTimelineReports, layoutTimelineEvents } = load(path.join(root, 'app/lib/scheduleTimeline.ts'));
 const day = '2026-09-17';
 const base = {
-  kind: '口头报告', scheduleCategory: '主日程', program: '', session: '', abstractNo: '',
+  kind: '口头报告', program: '', session: '', chair: '',
   sourceTitle: '临床研究', speaker: '报告人', institution: '医院', location: '报告厅',
-  field: '肺癌', directions: [], officialUrl: '', searchAliases: '',
+  field: '肺癌', searchAliases: '',
 };
 const report = (id, time, date = day) => ({ ...base, id, dateTime: `${date} 上午 ${time}` });
 const parse = reports => parseTimelineReports(reports).events;
@@ -73,12 +73,17 @@ const exact = layoutTimelineEvents(parse([report(1, '10:00-10:01')]), day, 600, 
 assert.deepEqual([exact.visibleStart, exact.visibleEnd, exact.continuesBefore, exact.continuesAfter],
   [600, 601, false, false], 'A one-minute talk stays one minute; exact edges are not continuations');
 
+const expert = { ...base, id: 1200, kind: '专家团', sourceTitle: '专家团', dateTime: '2026-09-19 时间未注明' };
+assert.deepEqual(parseTimelineReports([expert]), { events: [], untimed: [expert], days: [] },
+  'The workbook expert row stays accessible without inventing a timeline position or losing its date');
+
 const timezoneReports = [
   report(3, '23:45—24:00'), report(2, '00:05–00:15'),
   report(1, '09:00-09:15', '2026-09-18'), report(4, '00:05–00:15'),
   { ...base, id: 5, dateTime: '' }, { ...base, id: 6, dateTime: undefined },
   { ...base, id: 7, dateTime: '时间待定' }, report(8, '09:00-09:00'),
   report(9, '10:00-09:00'), report(10, '25:00-26:00'),
+  expert,
 ];
 const originalTimezone = process.env.TZ;
 try {
@@ -89,8 +94,8 @@ try {
     assert.deepEqual(parsed.events.map(event => [event.report.id, event.day, event.startMinute, event.endMinute]), [
       [2, day, 5, 15], [4, day, 5, 15], [3, day, 1425, 1440], [1, '2026-09-18', 540, 555],
     ], `Conference days and minute positions must not depend on viewer timezone ${timezone}`);
-    assert.deepEqual(parsed.untimed.map(item => item.id), [5, 6, 7, 8, 9, 10],
-      'Missing, malformed, zero-length and reversed times remain accessible as untimed reports');
+    assert.deepEqual(parsed.untimed.map(item => item.id), [5, 6, 7, 8, 9, 10, expert.id],
+      'Missing, malformed, zero-length, reversed and workbook unspecified times remain accessible as untimed reports');
   }
 } finally {
   if (originalTimezone === undefined) delete process.env.TZ;
@@ -99,7 +104,7 @@ try {
 
 const immutableReports = Object.freeze([
   report(3, '09:30-10:00'), report(1, '09:00-09:30'), report(2, '09:15-09:45'),
-].map(item => Object.freeze({ ...item, directions: Object.freeze([]) })));
+].map(item => Object.freeze(item)));
 const reportsBefore = structuredClone(immutableReports);
 const immutableEvents = Object.freeze(parse(immutableReports).map(event => Object.freeze(event)).reverse());
 const eventsBefore = structuredClone(immutableEvents);

@@ -1,5 +1,5 @@
 import type { CheckInRecord } from './checkIn';
-import type { Report } from './reports';
+import { getCancerTypes, type Report } from './reports';
 import { resolveVenue, type Venue } from './venueLocations';
 
 export type AttendanceVisit = { record: CheckInRecord; report: Report; venueId: string };
@@ -10,10 +10,6 @@ export type AttendanceVenue = {
 export type AttendanceKeyword = { label: string; count: number; reportIds: number[] };
 export type AttendanceLeg = { from: string; to: string; count: number };
 
-const DIRECTION_LABELS: Record<string, string> = {
-  靶向: '靶向治疗', 外科: '外科治疗', 真实世界: '真实世界研究', 回顾性: '回顾性研究',
-  数据库: '数据库研究', AI: '人工智能', 疗效安全性: '疗效与安全性',
-};
 const TITLE_KEYWORDS: readonly { label: string; pattern: RegExp }[] = [
   { label: '真实世界研究', pattern: /真实世界|real[\s-]?world|\bRWE\b|\bRWD\b/i },
   { label: '肺癌', pattern: /肺癌|肺腺癌|肺鳞癌|非小细胞肺|\bNSCLC\b|\bSCLC\b|lung\s+cancer/i },
@@ -33,14 +29,7 @@ const keywordCache = new WeakMap<Report, readonly string[]>();
 export function reportAttendanceKeywords(report: Report): readonly string[] {
   const cached = keywordCache.get(report);
   if (cached) return cached;
-  const labels = new Set<string>();
-  for (const source of [report.field, ...report.directions]) {
-    for (const part of source.split('/')) {
-      const label = part.replace(/[（(]泛癌种[）)]/g, '').trim();
-      if (!label || label === '大会专题' || label === '汇报分享' || label === '临床与转化探索') continue;
-      labels.add(DIRECTION_LABELS[label] ?? label);
-    }
-  }
+  const labels = new Set(getCancerTypes(report));
   for (const { label, pattern } of TITLE_KEYWORDS) {
     if (pattern.test(report.sourceTitle)) labels.add(label);
   }

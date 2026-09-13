@@ -113,7 +113,6 @@
 .singleNoteDocument .notebookPdfMetadata > div { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .singleNoteDocument .notebookPdfMetadata > div span { padding:2.5mm 2mm; font-size:8pt; line-height:1.5; overflow-wrap:anywhere; }
 .singleNoteDocument .notebookPdfMetadata i { font-size:6.5pt; }
-.singleNoteDocument .notebookPdfOfficial { grid-column:1/-1; }
 .singleNoteDocument .singleNoteRichText { min-height:30mm; }
 .notebookPdfSlides h2 { font-size:15pt; margin:5mm 0; }
 .notebookPdfSlides article { margin:0 0 6mm; }

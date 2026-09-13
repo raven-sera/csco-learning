@@ -598,13 +598,16 @@ function BatchReportNotes({report,note}:{report:Report;note:string}) {
         <div><span>CSCO 2026 · REPORT NOTES</span><b>{report.speaker}</b></div>
       </header>
       <section className="batchNoteReportCard" data-pdf-keep>
-        <div className="batchNoteKicker"><span>{report.field}{report.kind === '口头报告' && ` · ${report.directions.slice(0,2).join(' / ')}`}</span></div>
+        {report.field && <div className="batchNoteKicker"><span>癌种：{report.field}</span></div>}
         <h1>{report.sourceTitle}</h1>
         <dl>
           <div><dt>时间</dt><dd>{report.dateTime}</dd></div>
           <div><dt>地点</dt><dd>{report.location}</dd></div>
           <div><dt>报告人</dt><dd>{report.speaker}</dd></div>
           <div><dt>单位</dt><dd>{report.institution}</dd></div>
+          {report.program && <div><dt>专场</dt><dd>{report.program}</dd></div>}
+          {report.session && <div><dt>Session</dt><dd>{report.session}</dd></div>}
+          {report.chair && <div><dt>主持</dt><dd>{report.chair}</dd></div>}
         </dl>
       </section>
       <section className="batchNoteWorkspace">

@@ -47,11 +47,11 @@ async function cover(report:Report,count:number) {
     };
     add('CSCO · 报告 PPT 图集',27,true,'#32715c',26);
     add(report.sourceTitle,44,true,'#193d30',34);
-    add(`报告 ID：${report.id}　·　${count} 张 PPT`,25,false,'#526459',30);
+    add(`报告编号：${report.id}　·　${count} 张 PPT`,25,false,'#526459',30);
     const fields:[string,string][]=[
       ['报告人',report.speaker],['单位',report.institution],['日期 / 时间',report.dateTime],
       ['会议地点',report.location],['专场',report.program],['Session',report.session],
-      ['摘要编号',report.abstractNo],['聚焦领域',report.field],
+      ['主持',report.chair],['癌种',report.field],
     ];
     for (const [label,text] of fields) if (text) add(`${label}：${text}`,28,false,'#243e32',19);
     add('图片按本报告图集顺序排列 · 原始照片保留在本设备',22,false,'#526459',0);
@@ -78,7 +78,7 @@ export async function buildSlideExport(report:Report,slides:StoredSlide[],format
   if (format!=='pdf' && format!=='png') throw new Error('不支持的导出格式。');
   // Snapshot the selection before the first await so edits during export cannot mix versions.
   const images=slides.map((slide)=>({name:slide.name,blob:selectedImage(slide)}));
-  const reportSnapshot={...report,directions:[...report.directions]};
+  const reportSnapshot={...report};
   const basename=`CSCO-报告${report.id}-${safeFilename(report.sourceTitle)}`;
   const total=images.length+1;
   onProgress?.(0,total);

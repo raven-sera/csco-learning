@@ -1,7 +1,7 @@
 'use client';
 
 import { lazy, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { reports } from '../lib/reports';
+import { getCancerTypes, reports } from '../lib/reports';
 import type { Report } from '../lib/reports';
 import type { NotebookOpenOptions, NotebookSection } from '../lib/libraryTypes';
 import { LIBRARY_CHANGE_EVENT, readLibraryMeta, readLibrarySummaries, readSlideThumbnail } from '../lib/noteStorage';
@@ -236,7 +236,10 @@ function LibraryContent({ onOpen }: { onOpen: (report: Report, options: Notebook
 
   const choices = useMemo(() => ({
     dates: [...new Set(items.map(dateFor).filter(Boolean))].sort(),
-    fields: [...new Set(items.map((item) => REPORT_BY_ID.get(item.reportId)?.field ?? '').filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN')),
+    fields: [...new Set(items.flatMap((item) => {
+      const report = REPORT_BY_ID.get(item.reportId);
+      return report ? getCancerTypes(report) : [];
+    }))].sort((a, b) => a.localeCompare(b, 'zh-CN')),
     tags: [...new Set(items.flatMap((item) => item.meta.tags))].sort((a, b) => a.localeCompare(b, 'zh-CN')),
   }), [items]);
   const totals = useMemo(() => items.reduce((result, item) => ({
@@ -247,7 +250,7 @@ function LibraryContent({ onOpen }: { onOpen: (report: Report, options: Notebook
   const visible = useMemo(() => items.filter((item) => {
     const report = REPORT_BY_ID.get(item.reportId);
     if (browsing.type === 'slides' && !item.slideCount || browsing.type === 'text' && !item.hasNote || browsing.type === 'audio' && !item.recordingCount) return false;
-    if (browsing.date && dateFor(item) !== browsing.date || browsing.field && report?.field !== browsing.field || browsing.tag && !item.meta.tags.includes(browsing.tag)) return false;
+    if (browsing.date && dateFor(item) !== browsing.date || browsing.field && (!report || !getCancerTypes(report).includes(browsing.field)) || browsing.tag && !item.meta.tags.includes(browsing.tag)) return false;
     if (!tokens.length) return true;
     const haystack = normalize([titleFor(item), report?.speaker, report?.institution, item.noteText, item.annotationText, ...item.meta.tags].join(' '));
     return tokens.every((token) => haystack.includes(token));
@@ -280,9 +283,9 @@ function LibraryContent({ onOpen }: { onOpen: (report: Report, options: Notebook
       </div>
       {browsing.expanded && <div className="librarySecondaryFilters" id="library-secondary-filters">
         <label>报告日期<select value={browsing.date} onChange={(event) => changeBrowsing({ date: event.target.value })}><option value="">全部日期</option>{browsing.date && !choices.dates.includes(browsing.date) && <option value={browsing.date}>{browsing.date}（暂无资料）</option>}{choices.dates.map((date) => <option key={date}>{date}</option>)}</select></label>
-        <label>研究领域<select value={browsing.field} onChange={(event) => changeBrowsing({ field: event.target.value })}><option value="">全部领域</option>{browsing.field && !choices.fields.includes(browsing.field) && <option value={browsing.field}>{browsing.field}（暂无资料）</option>}{choices.fields.map((field) => <option key={field}>{field}</option>)}</select></label>
+        <label>癌种<select value={browsing.field} onChange={(event) => changeBrowsing({ field: event.target.value })}><option value="">全部癌种</option>{browsing.field && !choices.fields.includes(browsing.field) && <option value={browsing.field}>{browsing.field}（暂无资料）</option>}{choices.fields.map((field) => <option key={field}>{field}</option>)}</select></label>
         <label>个人标签<select value={browsing.tag} onChange={(event) => changeBrowsing({ tag: event.target.value })}><option value="">全部标签</option>{browsing.tag && !choices.tags.includes(browsing.tag) && <option value={browsing.tag}>{browsing.tag}（暂无资料）</option>}{choices.tags.map((tag) => <option key={tag}>{tag}</option>)}</select></label>
-        <p>标签可在报告笔记本中编辑；日期和领域来自报告日程。</p>
+        <p>标签可在报告笔记本中编辑；日期和癌种来自报告日程。</p>
       </div>}
     </div>
 
@@ -291,7 +294,7 @@ function LibraryContent({ onOpen }: { onOpen: (report: Report, options: Notebook
     <div className="libraryResultHeading"><h2>{filtered ? '搜索与筛选' : '全部笔记'}</h2><span role="status" aria-live="polite">{loading ? loaded ? '正在更新…' : '正在读取本机资料…' : loaded ? `${visible.length} 本${filtered ? ' · 已筛选' : ''}` : '尚未读取成功'}{deferredQuery !== browsing.query ? ' · 正在搜索' : ''}</span>{filtered && <button type="button" onClick={() => changeBrowsing({ query: '', type: 'all', date: '', field: '', tag: '' })}>清除筛选</button>}</div>
 
     {loaded && !error && !loading && items.length === 0 && <div className="libraryEmpty"><span className="libraryEyebrow">从一场报告开始</span><h2>你的学习资料会汇集在这里</h2><p>在报告看板打开一场报告，拍摄或导入 PPT、写笔记或录音，保存后即可在这里阅读。已有本机笔记也会自动显示。</p><p>仅收藏或加入日程、但尚未保存资料的报告不会出现在这里。</p><button type="button" onClick={() => setBackupOpen(true)}>从备份恢复资料</button></div>}
-    {loaded && !error && !loading && items.length > 0 && visible.length === 0 && <div className="libraryEmpty"><h2>没有符合条件的资料</h2><p>试试更短的关键词，或放宽类型、日期、领域和标签筛选。原有资料没有被删除。</p><button type="button" onClick={() => changeBrowsing({ query: '', type: 'all', date: '', field: '', tag: '' })}>显示全部资料</button></div>}
+    {loaded && !error && !loading && items.length > 0 && visible.length === 0 && <div className="libraryEmpty"><h2>没有符合条件的资料</h2><p>试试更短的关键词，或放宽类型、日期、癌种和标签筛选。原有资料没有被删除。</p><button type="button" onClick={() => changeBrowsing({ query: '', type: 'all', date: '', field: '', tag: '' })}>显示全部资料</button></div>}
 
     <ul className="libraryList" aria-label="笔记书架" aria-busy={loading}>{displayed.map((item) => {
       const report = REPORT_BY_ID.get(item.reportId);
