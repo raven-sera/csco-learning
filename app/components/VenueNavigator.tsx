@@ -159,7 +159,7 @@ export default function VenueNavigator({ scheduledReports, initialReport, onTogg
     <section className="venueNavigatorOverlay" role="dialog" aria-modal="true" aria-label="日程与会场地图">
       <div className="venueNavigator" data-mobile-pane={mobilePane}>
         <header className="venueNavigatorHeader">
-          <div><span className="venueEyebrow">SCHEDULE × VENUE</span><h2>日程与会场地图</h2><p>静态位置导览 · 山东大厦一、二层 · 非实时导航</p></div>
+          <div><span className="venueEyebrow">SCHEDULE × VENUE</span><h2>日程与会场地图</h2><p>静态位置导览 · 山东大厦一、二层 · 非实时导航</p><p className="venueCoverageNotice">技术原因，南郊宾馆（南郊俱乐部）的地图未纳入。</p></div>
           <button type="button" className="venueClose" onClick={onClose} aria-label="关闭地图并返回原位置">返回 <span aria-hidden>×</span></button>
         </header>
         <div className="venueNavigatorToolbar">

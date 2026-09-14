@@ -91,6 +91,10 @@ const workbookLocations: readonly [string, string][] = [
   ['南郊俱乐部-3F-多功能厅', 'nj-club-f3-multifunction'],
   ['南郊俱乐部-4F-小礼堂', 'nj-club-f4-auditorium'],
   ['1F-金色大厅', 'sd-f1-golden'],
+  ['1F-孔膳厅', 'sd-f1-kongshan'],
+  ['2F-淄博厅', 'sd-f2-zibo'],
+  ['南郊宾馆-1F-1001会议室', 'nj-hotel-f1-1001'],
+  ['南郊宾馆-1F-1011会议室', 'nj-hotel-f1-1011'],
 ];
 for (const [location, id] of workbookLocations) {
   byLocation.set(location, byId.get(id)!);

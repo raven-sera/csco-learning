@@ -777,7 +777,7 @@ export default function Explorer({ initialPage = 'reports' }: { initialPage?: Ac
       )}
       {initialPage !== 'favorites' && initialPage !== 'schedule' && <footer className="siteFooter">
         <BrandLockup />
-        <p>本工具用于会议预习与提问准备，不构成医疗建议。日程信息以《CSCO会议日程_五轮复核版》为准；表中未注明的时间、讲者或单位不作推定。</p>
+        <p>本工具用于会议预习与提问准备，不构成医疗建议。日程信息以《CSCO会议日程_五轮复核版_补充完整日程》为准；表中未注明的时间、讲者或单位不作推定。</p>
         <Link href="#top">回到顶部 ↑</Link>
       </footer>}
 
